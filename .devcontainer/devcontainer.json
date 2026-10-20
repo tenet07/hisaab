@@ -1,0 +1,15 @@
+{
+  "name": "Hisaab",
+  "dockerComposeFile": "compose.yaml",
+  "service": "rails-app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/rails/devcontainer/features/postgres-client:1": {}
+  },
+  "containerEnv": { "DB_HOST": "postgres", "DB_USER": "postgres", "DB_PASSWORD": "postgres" },
+  "forwardPorts": [3000],
+  "portsAttributes": { "3000": { "label": "Hisaab", "onAutoForward": "notify" } },
+  "postCreateCommand": "bundle install && bin/rails db:prepare",
+  "postAttachCommand": "bin/codespace"
+}

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Starts Hisaab inside a GitHub Codespace and makes its link openable from a phone.
+set -e
+cd "$(dirname "$0")/.."
+bin/rails db:prepare >/dev/null
+bin/rails tailwindcss:build >/dev/null 2>&1 || true
+rm -f tmp/pids/server.pid
+bin/rails server -b 0.0.0.0 -p 3000 -d
+for i in $(seq 1 30); do curl -sf localhost:3000/up >/dev/null && break; sleep 1; done
+URL="https://${CODESPACE_NAME}-3000.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}"
+if gh codespace ports visibility 3000:public -c "$CODESPACE_NAME" >/dev/null 2>&1; then
+  echo; echo "  Hisaab is running. Open this on your phone:"; echo; echo "    $URL"; echo
+else
+  echo; echo "  Hisaab is running at $URL"
+  echo "  To open it on your phone: PORTS tab → right-click port 3000 → Port Visibility → Public."; echo
+fi
+echo "  Sign in with the demo buttons on the login page (password hisaab123)."
