@@ -14,8 +14,8 @@
 </div>
 
 <div class="mt-5 grid gap-5 xl:grid-cols-3">
-  <div class="card xl:col-span-2">
-    <div class="card-head"><h2 class="card-title">Sales, last 14 days</h2><span class="text-xs text-slate-500">Total <%= inr0(@daily.values.sum) %></span></div>
+  <div class="card min-w-0 xl:col-span-2">
+    <div class="card-head flex-wrap gap-1"><h2 class="card-title">Sales, last 14 days</h2><span class="text-xs text-slate-500">Total <%= inr0(@daily.values.sum) %></span></div>
     <% max = [@daily.values.max.to_i, 1].max %>
     <div class="px-5 pt-4 pb-3">
       <div class="flex h-44 items-end gap-[2px]" role="img" aria-label="Daily sales bar chart">
@@ -35,6 +35,9 @@
   <div class="card">
     <div class="card-head"><h2 class="card-title">Needs you</h2></div>
     <ul class="divide-y divide-slate-100 text-sm">
+      <% @sync_rejects.each do |e| %>
+        <li class="flex items-center gap-3 px-5 py-2.5"><span class="badge-red">Phone</span><span class="flex-1 truncate"><%= e.user&.name %>'s <%= e.changeset["kind"] %> wasn't accepted: <%= e.changeset["error"] %><%= " (₹#{e.changeset.dig('params', 'amount')} entered)" if e.changeset.dig("params", "amount").present? %></span></li>
+      <% end %>
       <% @approvals.each do |a| %>
         <li class="flex items-center gap-3 px-5 py-2.5"><span class="badge-amber">Approve</span><span class="flex-1 truncate"><%= a.kind_label %> · <%= a.reason %></span><%= link_to "Open", approvals_path, class: "link text-xs" %></li>
       <% end %>
@@ -44,7 +47,7 @@
       <% @open_orders.each do |o| %>
         <li class="flex items-center gap-3 px-5 py-2.5"><%= channel_badge o.channel %><span class="flex-1 truncate"><%= o.customer.shop_name %></span><%= link_to "Review", o, class: "link text-xs" %></li>
       <% end %>
-      <% if @approvals.empty? && @flagged_claims.empty? && @open_orders.empty? %>
+      <% if @approvals.empty? && @flagged_claims.empty? && @open_orders.empty? && @sync_rejects.empty? %>
         <li class="px-5 py-8 text-center text-slate-500">All clear.</li>
       <% end %>
     </ul>

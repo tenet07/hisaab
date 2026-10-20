@@ -56,9 +56,21 @@ export default class extends Controller {
   // Customer picked: switch the price tier and whether prices include GST
   customer(e) {
     this.tierValue = e.detail.tier || "wholesale"
-    this.inclusiveValue = !e.detail.b2b
+    this.inclusiveValue = !!e.detail.incl
     const badge = this.element.querySelector("[data-price-mode]")
-    if (badge) badge.textContent = this.inclusiveValue ? "Prices include GST (B2C)" : "Prices + GST (B2B)"
+    if (badge) badge.textContent = this.inclusiveValue ? "Prices include GST" : "Rate + GST (dealer price list)"
+    this.reprice()
+  }
+
+  // Put every row on the current customer's price list, as the server will
+  reprice() {
+    const catalog = JSON.parse(document.getElementById("product-catalog")?.textContent || "[]")
+    const byId = Object.fromEntries(catalog.map(i => [String(i.id), i]))
+    this.bodyTarget.querySelectorAll("tr").forEach(row => {
+      const id = row.querySelector("input[type=hidden][name$='[product_id]']")?.value
+      const item = byId[id], rate = row.querySelector("[data-field=rate]")
+      if (item && rate && item.prices) rate.value = ((item.prices[this.tierValue] ?? item.prices.wholesale) / 100).toFixed(2)
+    })
     this.recalc()
   }
 
@@ -73,7 +85,7 @@ export default class extends Controller {
   recalc() {
     let taxable = 0, tax = 0, n = 0
     this.bodyTarget.querySelectorAll("tr:not([hidden])").forEach(row => {
-      const q = parseFloat(row.querySelector("[data-field=qty]")?.value) || 0
+      const q = parseInt(row.querySelector("[data-field=qty]")?.value, 10) || 0
       const r = parseFloat(row.querySelector("[data-field=rate]")?.value) || 0
       const d = parseFloat(row.querySelector("[data-field=disc]")?.value) || 0
       const g = parseFloat(row.dataset.gst) || 0

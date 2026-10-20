@@ -21,7 +21,7 @@ class StockTest < ActiveSupport::TestCase
 
   test "delivery drop with OTP, shortfall and cash" do
     inv = bill(@cust, [{ product: @bulb, quantity: 10 }])
-    run = DispatchRun.create!(market: @market, run_date: Date.current, delivery_person: @owner)
+    run = DispatchRun.create!(market: @market, run_date: Date.current, delivery_person: @owner, status: "out")
     d = run.deliveries.create!(invoice: inv)
     assert_raises(Dispatch::Drop::Error) { Dispatch::Drop.complete!(d, otp: "0000x") }
     Dispatch::Drop.complete!(d.reload, otp: d.otp_code, shortfall: { inv.lines.first.id => 1 },

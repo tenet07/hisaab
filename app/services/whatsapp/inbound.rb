@@ -4,7 +4,7 @@ module Whatsapp
   module Inbound
     BALANCE = /\A\s*(bal(ance)?|baki|baaki|hisab|hisaab|due|outstanding|kitna\s+(baki|dena))\b/i
     STATEMENT = /\A\s*(statement|ledger|khata)\b/i
-    STOP = /\A\s*(stop|unsubscribe)\s*\z/i
+    STOP = /\A\s*(stop|unsubscribe|band karo)\b/i
     module_function
 
     def handle(phone:, text:, provider_id: nil)
@@ -24,10 +24,12 @@ module Whatsapp
         customer.update!(marketing_opt_in: false)
         WhatsappNotifier.text(customer, "Done — you won't get offers any more. Bills and receipts will still come here.")
       else
-        if order_like?(text)
-          order = OrderParser.draft!(customer: customer, text: text, channel: "whatsapp")
+        # only messages that name something we sell become orders; the rest wait in the inbox for a person
+        lines = order_like?(text) ? OrderParser.parse(text) : []
+        if lines.any?(&:product)
+          order = OrderParser.draft!(customer: customer, text: text, channel: "whatsapp", lines: lines)
           msg.update!(document: order)
-          WhatsappNotifier.order_ack(order) if order.lines.any?
+          WhatsappNotifier.order_ack(order)
         end
       end
       msg

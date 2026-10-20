@@ -25,14 +25,11 @@ class ReportsController < ApplicationController
   end
 
   def dues
-    open = Invoice.posted.includes(:payment_allocations, :credit_notes, customer: :market).to_a.select(&:unpaid?)
+    open = Receivables.open_items
     open.select!(&:overdue?) if params[:overdue] == "1"
     @rows = open.group_by(&:customer).map do |c, invs|
-      ages = { "0–30" => 0, "31–60" => 0, "61–90" => 0, "90+" => 0 }
-      invs.each do |i|
-        days = (Date.current - i.invoice_date).to_i
-        ages[days <= 30 ? "0–30" : days <= 60 ? "31–60" : days <= 90 ? "61–90" : "90+"] += i.outstanding_paise
-      end
+      ages = Receivables.empty_ageing
+      invs.each { |i| ages[Receivables.ageing_bucket(i)] += i.outstanding_paise }
       { customer: c, total: invs.sum(&:outstanding_paise), overdue: invs.select(&:overdue?).sum(&:outstanding_paise), ages: ages,
         oldest: invs.map(&:invoice_date).min }
     end.sort_by { -_1[:total] }
@@ -59,7 +56,10 @@ class ReportsController < ApplicationController
     @r = Reports::Gstr1.new(@month)
     respond_to do |f|
       f.html
-      f.csv { send_data @r.csv(params[:table].presence_in(Reports::Gstr1::TABLES) || "b2b"), filename: "GSTR1-#{params[:table]}-#{@r.period}.csv" }
+      f.csv do
+        table = params[:table].presence_in(Reports::Gstr1::TABLES) or raise ActionController::RoutingError, "Unknown GSTR-1 table"
+        send_data @r.csv(table), filename: "GSTR1-#{table}-#{@r.period}.csv"
+      end
       f.json { send_data @r.to_json, filename: "GSTR1-#{@r.period}.json" }
     end
   end

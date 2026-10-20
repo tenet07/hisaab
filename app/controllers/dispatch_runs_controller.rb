@@ -15,11 +15,15 @@ class DispatchRunsController < ApplicationController
     run = DispatchRun.find_or_create_by!(market_id: params[:market_id], run_date: date_param(params[:date])) do |r|
       r.delivery_person = User.active.with_role("delivery").first
     end
+    skipped = 0
     if params[:auto] == "1"
       Invoice.undispatched.joins(:customer).where(customers: { market_id: run.market_id }).where(invoice_date: (run.run_date - 14)..run.run_date)
-             .order(:invoice_date).each_with_index { |inv, i| run.deliveries.create!(invoice: inv, position: run.deliveries.size + i) }
+             .order(:invoice_date).each do |inv|
+        next skipped += 1 if inv.eway_required && inv.eway_bill_no.blank?
+        load!(run, inv)
+      end
     end
-    redirect_to run
+    redirect_to run, notice: (skipped.positive? ? "#{skipped} bill(s) left off: they need an e-way bill number first." : nil)
   end
 
   def show
@@ -38,7 +42,7 @@ class DispatchRunsController < ApplicationController
     Array(params[:invoice_ids]).each do |id|
       inv = Invoice.posted.find(id)
       raise ArgumentError, "#{inv.number} needs an e-way bill number before dispatch" if inv.eway_required && inv.eway_bill_no.blank?
-      @run.deliveries.create!(invoice: inv, position: @run.deliveries.size)
+      load!(@run, inv)
     end
     redirect_to @run
   end
@@ -46,6 +50,7 @@ class DispatchRunsController < ApplicationController
   def remove
     d = @run.deliveries.find(params[:delivery_id])
     raise ArgumentError, "Delivered drops can't be removed" if d.done?
+    AuditEvent.log!(d.invoice, "removed_from_route", { "run" => @run.id, "status" => d.status, "notes" => d.notes })
     d.destroy!
     redirect_to @run
   end
@@ -53,7 +58,7 @@ class DispatchRunsController < ApplicationController
   # Out for delivery: each customer gets their drop OTP on WhatsApp.
   def start
     @run.update!(status: "out")
-    @run.deliveries.reject(&:done?).each do |d|
+    @run.deliveries.reject(&:closed?).each do |d|
       WhatsappNotifier.text(d.customer, "Your order #{d.invoice.number} (#{Money.format(d.invoice.total_paise)}) is out for delivery today. " \
                                         "Share OTP #{d.otp_code} with our delivery person when it arrives.")
     end
@@ -66,6 +71,16 @@ class DispatchRunsController < ApplicationController
   end
 
   private
+
+  # A bill whose last attempt failed moves to this run; the failed attempt is kept in the audit trail.
+  def load!(run, inv)
+    if (old = inv.delivery)
+      raise ArgumentError, "#{inv.number} is already on a route" unless old.failed?
+      AuditEvent.log!(inv, "redispatched", { "from_run" => old.dispatch_run_id, "failed_because" => old.notes })
+      old.destroy!
+    end
+    run.deliveries.create!(invoice: inv, position: (run.deliveries.maximum(:position) || -1) + 1)
+  end
 
   def set_run = @run = DispatchRun.find(params[:id])
 end

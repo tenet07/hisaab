@@ -3,13 +3,13 @@
 <% @runs.each do |run| %>
   <% done, total = run.progress %>
   <div class="rounded-2xl bg-white p-4 shadow-xs ring-1 ring-slate-200">
-    <div class="flex items-center justify-between"><div class="font-semibold"><%= run.market.name %></div><span class="text-sm tnum text-slate-500"><%= done %>/<%= total %></span></div>
+    <div class="flex items-center justify-between"><div class="font-semibold"><%= run.market.name %> <% if run.status == "planned" %><span class="badge-amber ml-1">Not started</span><% end %></div><span class="text-sm tnum text-slate-500"><%= done %>/<%= total %></span></div>
     <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-emerald-500" style="width: <%= total.zero? ? 0 : done * 100 / total %>%"></div></div>
   </div>
   <div class="space-y-2">
     <% run.deliveries.each_with_index do |d, i| %>
-      <%= link_to m_drop_path(d), class: "m-tap #{'opacity-60' if d.done?}" do %>
-        <div class="grid size-9 shrink-0 place-items-center rounded-full <%= d.done? ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' %> text-sm font-semibold"><%= d.done? ? "✓" : i + 1 %></div>
+      <%= link_to m_drop_path(d), class: "m-tap #{'opacity-60' if d.closed?}" do %>
+        <div class="grid size-9 shrink-0 place-items-center rounded-full <%= d.failed? ? 'bg-rose-100 text-rose-700' : d.done? ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' %> text-sm font-semibold"><%= d.failed? ? "✕" : d.done? ? "✓" : i + 1 %></div>
         <div class="min-w-0 flex-1"><div class="truncate font-medium"><%= d.customer.shop_name %></div><div class="truncate text-xs text-slate-500"><%= d.invoice.number %> · <%= d.customer.address %></div></div>
         <div class="text-right text-sm tnum font-semibold"><%= inr0 d.invoice.total_paise %></div>
       <% end %>

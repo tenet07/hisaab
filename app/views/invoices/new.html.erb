@@ -2,9 +2,9 @@
 <%= page_header "New invoice", "Posts immediately: stock goes out and the customer is debited." %>
 <%= catalog_script "product-catalog", product_catalog_json %>
 <%= catalog_script "customer-catalog", customer_catalog_json %>
-<%= form_with url: invoices_path, class: "space-y-4", data: { controller: "lines", lines_tier_value: @customer&.price_tier || "wholesale", turbo_confirm: "Post this GST invoice?" } do |f| %>
+<%= form_with url: invoices_path, class: "space-y-4", data: { controller: "lines", lines_tier_value: @customer&.price_tier || "wholesale", lines_inclusive_value: !!@customer&.prices_include_tax?, turbo_confirm: "Post this GST invoice?" } do |f| %>
   <div class="card-pad grid gap-4 sm:grid-cols-4">
-    <div class="field sm:col-span-2"><label class="label">Customer</label><%= combobox name: "customer_id", value: @customer&.id, label: @customer&.shop_name, source: "customer-catalog", autofocus: @customer.nil? %></div>
+    <div class="field sm:col-span-2"><label class="label">Customer</label><%= combobox name: "customer_id", value: @customer&.id, label: @customer&.shop_name, source: "customer-catalog", autofocus: @customer.nil?, extra_action: "combobox:picked->lines#customer" %></div>
     <div class="field"><label class="label">Invoice date</label><%= f.date_field :invoice_date, value: Date.current, class: "input", readonly: !can_set_rates? %></div>
     <div class="field"><label class="label">Channel</label><%= f.select :channel, Order::CHANNELS.map { [_1.capitalize, _1] }, {}, class: "input" %></div>
   </div>

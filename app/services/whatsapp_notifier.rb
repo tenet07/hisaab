@@ -30,7 +30,7 @@ module WhatsappNotifier
 
   def receipt(pay)
     c = pay.customer
-    applied = pay.allocations.includes(:invoice).map { "#{_1.invoice.number} #{Money.format(_1.amount_paise)}" }.join(", ")
+    applied = pay.allocations.includes(:invoice).map { "#{_1.target_label} #{Money.format(_1.amount_paise)}" }.join(", ")
     queue(c, category: "utility", template: "payment_receipt", document: pay,
           params: [Money.format(pay.amount_paise), pay.mode_label, pay.number, Money.format(c.balance_paise)],
           body: "Received #{Money.format(pay.amount_paise)} by #{pay.mode_label} (receipt #{pay.number}). " \
@@ -47,7 +47,7 @@ module WhatsappNotifier
   end
 
   def overdue_reminder(c)
-    overdue = c.open_invoices.select(&:overdue?)
+    overdue = c.open_items.select(&:overdue?)
     return if overdue.empty?
     oldest = overdue.first
     queue(c, category: "utility", template: "overdue_reminder", document: oldest,
@@ -64,7 +64,7 @@ module WhatsappNotifier
   end
 
   def balance_reply(c)
-    open = c.open_invoices
+    open = c.open_items
     lines = open.first(5).map { "• #{_1.number} (#{_1.invoice_date.strftime('%d %b')}): #{Money.format(_1.outstanding_paise)}#{' ⚠ overdue' if _1.overdue?}" }
     queue(c, category: "service",
           body: "#{c.shop_name}: balance #{Money.format(c.balance_paise)}.\n#{lines.join("\n")}#{"\n…and #{open.size - 5} more" if open.size > 5}".strip)
@@ -72,9 +72,11 @@ module WhatsappNotifier
 
   def order_ack(order)
     c = order.customer
-    items = order.lines.includes(:product).map { "#{_1.product&.display_name || "“#{_1.source_text}” (we'll check)"} × #{_1.quantity}" }
+    lines = order.lines.includes(:product)
+    items = lines.select(&:product).map { "#{_1.product.display_name} × #{_1.quantity}" }
+    unsure = lines.reject(&:product).map { "“#{_1.source_text}”" }
     queue(c, category: "service", document: order,
-          body: "Got your order #{order.number}:\n#{items.join("\n")}\nWe'll confirm and send the bill shortly.")
+          body: "Got your order #{order.number}:\n#{items.join("\n")}#{"\nWe'll call you about: #{unsure.join(', ')}" if unsure.any?}\nWe'll confirm and send the bill shortly.")
   end
 
   def text(c, body, phone: nil) = queue(c, category: "service", body: body, phone: phone)

@@ -29,8 +29,7 @@ class CreditNotesController < ApplicationController
       next unless line && r["quantity"].to_i.positive?
       { invoice_line: line, quantity: r["quantity"].to_i, rate_paise: (Money.to_paise(r["rate"]) if params[:reason] == "rate_difference") }
     end
-    cn = Invoicing::CreditNote.call(invoice: invoice, reason: params[:reason], items: items,
-                                    restock_bucket: params[:reason] == "rate_difference" ? nil : params[:restock_bucket], notes: params[:notes])
+    cn = Invoicing::CreditNote.call(invoice: invoice, reason: params[:reason], items: items, notes: params[:notes])
     WhatsappNotifier.credit_note(cn) if params[:whatsapp] == "1"
     redirect_to cn, notice: "Credit note #{cn.number} posted."
   end

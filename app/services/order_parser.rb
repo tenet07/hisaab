@@ -5,8 +5,8 @@ module OrderParser
   Line = Struct.new(:product, :quantity, :source_text, :confidence, keyword_init: true)
   module_function
 
-  def draft!(customer:, text:, channel: "whatsapp")
-    lines = parse(text)
+  def draft!(customer:, text:, channel: "whatsapp", lines: nil)
+    lines ||= parse(text)
     Order.create!(customer: customer, channel: channel, raw_message: text, status: "draft", created_by: Current.user,
                   lines_attributes: lines.map { |l| { product_id: l.product&.id, quantity: [l.quantity, 1].max,
                                                       source_text: l.source_text, confidence: l.confidence } })
@@ -96,6 +96,7 @@ module OrderParser
   module Fuzzy
     SPLIT = /[\n,;+]|\band\b|\baur\b|\bani\b|\bplus\b/i
     QTY = /(\d+)\s*(?:pcs?|pieces?|nos?|no\.|qty|box(?:es)?|pkts?)?\b/i
+    DOZEN = /(\d+)\s*(?:dozen|dzn|darjan|dz)\b/i
     NOISE = %w[bhai bhej do dena please pls plz send kar ke chahiye hai sir ji order bhejo de ka ki ko and aur ani].freeze
 
     module_function
@@ -119,6 +120,7 @@ module OrderParser
     end
 
     def quantity_in(chunk, wattage)
+      return chunk[DOZEN, 1].to_i * 12 if chunk.match?(DOZEN)
       nums = chunk.scan(QTY).flatten.map(&:to_i)
       nums.delete_at(nums.index(wattage.to_i)) if wattage && nums.index(wattage.to_i)
       nums.last

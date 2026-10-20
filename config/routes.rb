@@ -16,7 +16,6 @@ Rails.application.routes.draw do
   end
   get "counter" => "counter#new", as: :counter
   post "counter" => "counter#create"
-  get "counter/lookup" => "counter#lookup", as: :counter_lookup
 
   resources :invoices, only: %i[index show new create] do
     member { post :cancel; post :send_whatsapp; patch :eway }
@@ -27,7 +26,7 @@ Rails.application.routes.draw do
     member { post :bounce; post :send_receipt }
   end
   resources :customers do
-    member { get :statement; post :send_statement; get :visit }
+    member { get :statement; post :send_statement }
     collection { get :import, action: :import_form; post :import }
   end
   resources :suppliers do
@@ -58,7 +57,7 @@ Rails.application.routes.draw do
   end
 
   namespace :whatsapp do
-    resources :messages, only: %i[index show create]
+    resources :messages, only: %i[index create]
     resources :broadcasts, only: %i[index new create show] do
       member { post :deliver }
     end

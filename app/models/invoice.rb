@@ -12,11 +12,18 @@ class Invoice < ApplicationRecord
   has_many :whatsapp_messages, as: :document
 
   money :taxable, :cgst, :sgst, :igst, :round_off, :total
+
+  OUTSTANDING_SQL = "(invoices.total_paise - COALESCE((SELECT SUM(pa.amount_paise) FROM payment_allocations pa WHERE pa.invoice_id = invoices.id), 0) " \
+                    "- COALESCE((SELECT SUM(cn.total_paise) FROM credit_notes cn WHERE cn.invoice_id = invoices.id), 0))".freeze
+  PAID_SQL = "COALESCE((SELECT SUM(pa.amount_paise) FROM payment_allocations pa WHERE pa.invoice_id = invoices.id), 0)".freeze
+  scope :with_outstanding, -> { select("invoices.*, #{OUTSTANDING_SQL} AS outstanding_sql, #{PAID_SQL} AS paid_sql") }
+  scope :unpaid, -> { where(status: "posted").where("#{OUTSTANDING_SQL} > 0") }
   scope :posted, -> { where(status: "posted") }
   scope :recent, -> { order(invoice_date: :desc, id: :desc) }
   scope :in_fy, ->(fy) { where(fy: fy) }
   scope :between, ->(r) { where(invoice_date: r) }
-  scope :undispatched, -> { posted.where.missing(:delivery) }
+  # not on any route yet, or its last delivery attempt failed
+  scope :undispatched, -> { posted.left_joins(:delivery).where(deliveries: { id: nil }).or(posted.left_joins(:delivery).where(deliveries: { status: "failed" })) }
 
   def posted? = status == "posted"
   def cancelled? = status == "cancelled"
@@ -24,9 +31,14 @@ class Invoice < ApplicationRecord
   def interstate? = igst_paise.positive? || place_of_supply != ShopSetting.current.state_code
   def b2b? = bill_to_gstin.present?
 
-  def paid_paise = payment_allocations.sum(:amount_paise)
+  def paid_paise = has_attribute?(:paid_sql) ? self[:paid_sql].to_i : payment_allocations.sum(:amount_paise)
   def credited_paise = credit_notes.sum(:total_paise)
-  def outstanding_paise = posted? ? [total_paise - paid_paise - credited_paise, 0].max : 0
+
+  def outstanding_paise
+    return 0 unless posted?
+    return [self[:outstanding_sql].to_i, 0].max if has_attribute?(:outstanding_sql)
+    [total_paise - paid_paise - credited_paise, 0].max
+  end
   def unpaid? = outstanding_paise.positive?
   def overdue?(on = Date.current) = unpaid? && due_date < on
   def days_overdue(on = Date.current) = overdue?(on) ? (on - due_date).to_i : 0
@@ -35,7 +47,7 @@ class Invoice < ApplicationRecord
     return "cancelled" if cancelled?
     return "paid" unless unpaid?
     return "overdue" if overdue?
-    paid_paise.positive? || credited_paise.positive? ? "part-paid" : "unpaid"
+    outstanding_paise < total_paise ? "part-paid" : "unpaid"
   end
 
   # Lines already credited back, per invoice line

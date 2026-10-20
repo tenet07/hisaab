@@ -5,6 +5,8 @@ module Money
   def to_paise(rupees)
     return nil if rupees.nil? || rupees.to_s.strip.empty?
     (BigDecimal(rupees.to_s.delete(",₹ ")) * 100).round.to_i
+  rescue ArgumentError
+    raise ArgumentError, "“#{rupees}” isn't an amount in rupees"
   end
 
   # Indian digit grouping: ₹12,34,567.50

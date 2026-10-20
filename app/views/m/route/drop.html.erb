@@ -2,8 +2,10 @@
 <% content_for :title, c.shop_name %>
 <% content_for :subtitle, "#{@invoice.number} · #{inr0 @invoice.total_paise}" %>
 <% content_for :back, m_route_path %>
-<% if @drop.done? %>
-  <div class="rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-800 ring-1 ring-emerald-200"><%= @drop.status.humanize %> at <%= @drop.delivered_at&.strftime("%I:%M %p") %> (<%= @drop.proof %>)</div>
+<% if @drop.closed? %>
+  <div class="rounded-2xl <%= @drop.failed? ? 'bg-rose-50 text-rose-800 ring-rose-200' : 'bg-emerald-50 text-emerald-800 ring-emerald-200' %> p-4 text-sm ring-1"><%= @drop.status.humanize %> at <%= @drop.delivered_at&.strftime("%I:%M %p") %> <%= @drop.failed? ? "— #{@drop.notes}" : "(#{@drop.proof})" %></div>
+<% elsif @drop.dispatch_run.status == "planned" %>
+  <div class="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">The office hasn't started this route yet, so customers don't have their OTPs. Ask them to tap “Start” before you leave.</div>
 <% else %>
 <%= form_with url: m_drop_path(@drop), method: :patch, multipart: true, class: "space-y-3", data: { controller: "outbox-form", outbox_form_kind_value: "drop", outbox_form_back_value: m_route_path, action: "submit->outbox-form#submit" } do |f| %>
   <%= hidden_field_tag :delivery_id, @drop.id %>
@@ -32,6 +34,7 @@
     <div class="flex items-center justify-between text-xs font-semibold tracking-wide text-slate-500 uppercase"><span>Collect</span><span class="normal-case tracking-normal">due <%= inr0 c.balance_paise %></span></div>
     <%= f.number_field :amount, step: "0.01", inputmode: "decimal", class: "input-lg tnum", placeholder: "Amount received ₹ (optional)" %>
     <div class="grid grid-cols-3 gap-2"><% [["cash", "Cash"], ["upi", "UPI"], ["cheque", "Cheque"]].each_with_index do |(v, l), i| %><label class="cursor-pointer rounded-xl py-2.5 text-center text-sm font-medium ring-1 ring-slate-200 has-[:checked]:bg-emerald-600 has-[:checked]:text-white"><%= radio_button_tag :mode, v, i.zero?, class: "sr-only" %><%= l %></label><% end %></div>
+    <%= f.text_field :reference, class: "input-lg", placeholder: "Cheque no. + bank / UTR (needed for cheque)" %>
   </div>
   <%= f.button class: "btn-success btn-lg w-full py-4" do %><%= icon "check", class: "size-5" %> Delivered<% end %>
 <% end %>

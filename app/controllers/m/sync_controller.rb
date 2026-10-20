@@ -6,11 +6,11 @@ module M
 
     # Everything the phone needs to keep working without signal
     def catalog
-      customers = Current.user.salesman? ? Customer.active.where(market: Current.user.markets) : Customer.active
+      customers = Current.user.owner? ? Customer.active : Customer.active.where(market: Current.user.markets)
       render json: {
         at: Time.current.iso8601,
         products: Product.active.includes(:brand).map { { id: _1.id, label: _1.display_name, sku: _1.sku, search: [_1.display_name, _1.sku, _1.aliases].join(" ").downcase } },
-        customers: customers.with_balance.map { { id: _1.id, name: _1.shop_name, balance: _1.balance_paise } }
+        customers: can?(:visits) ? customers.with_balance.map { { id: _1.id, name: _1.shop_name, balance: _1.balance_paise } } : []
       }
     end
 
@@ -20,6 +20,8 @@ module M
         uuid = item["client_uuid"]
         begin
           p = item["params"] || {}
+          perm = { "order" => :orders, "payment" => :payments, "replacement" => :replacements, "drop" => :deliveries }[item["kind"]]
+          raise ArgumentError, "Your role can't do that" unless perm && can?(perm)
           doc = case item["kind"]
                 when "order" then Mobile::Capture.order(customer: Customer.find(p["customer_id"]), lines: p["lines"] || {}, notes: p["notes"], client_uuid: uuid)
                 when "payment" then Mobile::Capture.payment(customer: Customer.find(p["customer_id"]), amount: p["amount"], mode: p["mode"], reference: p["reference"], client_uuid: uuid)
@@ -30,6 +32,9 @@ module M
           { client_uuid: uuid, ok: true, number: doc.try(:number) }
         rescue ActiveRecord::RecordNotFound, ArgumentError, Payments::Record::Error, Replacements::Intake::Error, Dispatch::Drop::Error,
                Invoicing::CreditNote::Error, ActiveRecord::RecordInvalid => e
+          # kept on the phone as "needs attention", and shown to the office, so nothing collected is lost silently
+          AuditEvent.log!(Current.user, "sync_rejected", { "kind" => item["kind"], "error" => e.message,
+                                                           "params" => (item["params"] || {}).except("photo_data"), "saved_at" => item["saved_at"] })
           { client_uuid: uuid, ok: false, permanent: true, error: e.message }
         end
       end

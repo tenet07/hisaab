@@ -4,6 +4,7 @@ class PaymentsController < ApplicationController
 
   def index
     scope = Payment.includes(:customer, :collected_by).recent
+    scope = scope.where(collected_by: Current.user, received_on: 7.days.ago.to_date..) unless can?(:ledgers)
     scope = scope.where(received_on: date_param(params[:from])..) if params[:from].present?
     scope = scope.where(received_on: ..date_param(params[:to])) if params[:to].present?
     scope = scope.where(mode: params[:mode]) if params[:mode].present?
@@ -12,7 +13,10 @@ class PaymentsController < ApplicationController
     @by_mode = @payments.reject(&:bounced?).group_by(&:mode).transform_values { _1.sum(&:amount_paise) }
   end
 
-  def show = @payment = Payment.find(params[:id])
+  def show
+    @payment = Payment.find(params[:id])
+    raise Forbidden unless can?(:ledgers) || @payment.collected_by_id == Current.user.id
+  end
 
   def new
     @customer = Customer.find_by(id: params[:customer_id])
@@ -36,6 +40,7 @@ class PaymentsController < ApplicationController
 
   def send_receipt
     pay = Payment.find(params[:id])
+    raise Forbidden unless can?(:ledgers) || pay.collected_by_id == Current.user.id
     WhatsappNotifier.receipt(pay)
     redirect_to pay, notice: "Receipt sent."
   end

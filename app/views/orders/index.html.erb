@@ -6,7 +6,7 @@
 <div class="grid gap-5 xl:grid-cols-[1fr_360px]">
   <div>
     <div class="mb-3 flex flex-wrap items-center gap-2">
-      <div class="tabs flex-1">
+      <div class="tabs flex-1 overflow-x-auto">
         <% { "open" => "Open", "invoiced" => "Billed", "cancelled" => "Cancelled", "all" => "All" }.each do |k, v| %>
           <%= link_to v, orders_path(tab: k, channel: params[:channel]), class: ["tab", ("active" if @tab == k)] %>
         <% end %>

@@ -3,9 +3,7 @@
 <%= form_with url: invoice_credit_notes_path(@invoice), class: "space-y-4", data: { turbo_confirm: "Post this credit note?" } do |f| %>
   <div class="card-pad grid gap-4 sm:grid-cols-3">
     <div class="field"><label class="label">Reason</label><%= f.select :reason, CreditNote::REASONS.invert.to_a, { selected: params[:reason] || "shortfall" }, class: "input" %></div>
-    <div class="field"><label class="label">Pieces go to</label>
-      <%= f.select :restock_bucket, [["Back to sellable stock", "sellable"], ["Awaiting brand claim (defective)", "awaiting_claim"], ["No stock movement (never left the shop / short delivery)", ""]], { selected: params[:reason] == "shortfall" ? "" : "sellable" }, class: "input" %>
-      <p class="hint">Shortfall at delivery: pieces never left, choose “sellable” if they're back on the shelf.</p></div>
+    <div class="field"><label class="label">Stock</label><p class="pt-2 text-sm text-slate-600">Shortfall and returns go back to sellable stock. Defective pieces: log a replacement instead.</p></div>
     <div class="field"><label class="label">Notes</label><%= f.text_field :notes, class: "input" %></div>
   </div>
   <div class="card">
@@ -17,7 +15,7 @@
           <tr><td><%= l.description %></td><td class="num"><%= l.quantity %></td><td class="num text-slate-500"><%= @credited[l.id].to_i %></td>
             <td class="num"><%= inr (l.taxable_paise.to_d / l.quantity).round %></td>
             <td class="w-28"><%= number_field_tag "lines[#{l.id}][quantity]", nil, min: 0, max: left, class: "input text-right", disabled: left.zero?, placeholder: left.to_s %></td>
-            <td class="w-36"><%= number_field_tag "lines[#{l.id}][rate]", nil, min: 0, step: "0.01", class: "input text-right", placeholder: "per piece, ex-GST" %></td></tr>
+            <td class="w-36"><%= number_field_tag "lines[#{l.id}][rate]", nil, min: 0, step: "0.01", class: "input text-right", placeholder: "reduction per piece, ex-GST" %></td></tr>
         <% end %>
       </tbody>
     </table>

@@ -24,6 +24,7 @@
         <span data-outbox-target="offline" hidden title="Offline"><%= icon "wifi-off", class: "size-5" %></span>
       </header>
       <div id="flash"><%= render "shared/flash" %></div>
+      <div data-outbox-target="failed" hidden class="mx-3 mt-3 rounded-2xl bg-rose-50 px-4 py-2 text-sm text-rose-900 ring-1 ring-rose-200"></div>
       <main class="flex-1 space-y-3 px-3 py-3 pb-24"><%= yield %></main>
       <nav class="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur safe-bottom">
         <div class="mx-auto flex max-w-lg justify-around pt-2 text-[11px] font-medium text-slate-500">

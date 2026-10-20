@@ -1,18 +1,23 @@
-// The phone's outbox of entries made without signal (kept in localStorage).
+// The phone's outbox of entries made without signal (kept in localStorage). Entries the office
+// rejected stay here, marked failed, until the person on the phone has seen them.
 const KEY = "hisaab-outbox"
 
-export function pending() {
+export function all() {
   try { return JSON.parse(localStorage.getItem(KEY) || "[]") } catch (_) { return [] }
 }
+const save = (items) => localStorage.setItem(KEY, JSON.stringify(items))
+
+export const pending = () => all().filter(i => !i.error)
+export const failed = () => all().filter(i => i.error)
 
 export function enqueue(item) {
-  const items = pending().filter(i => i.client_uuid !== item.client_uuid)
-  items.push(item)
-  localStorage.setItem(KEY, JSON.stringify(items))
+  save([...all().filter(i => i.client_uuid !== item.client_uuid), item])
 }
 
-export function remove(uuid) {
-  localStorage.setItem(KEY, JSON.stringify(pending().filter(i => i.client_uuid !== uuid)))
+export function remove(uuid) { save(all().filter(i => i.client_uuid !== uuid)) }
+
+export function markFailed(uuid, error) {
+  save(all().map(i => i.client_uuid === uuid ? { ...i, error } : i))
 }
 
 // "lines[12][product_id]" style names → nested objects, the shape Rails params would have

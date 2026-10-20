@@ -8,7 +8,7 @@
   <div class="card">
     <div class="card-head"><h2 class="card-title">Applied to</h2><span class="text-sm tnum"><%= inr p.amount_paise %> · <%= p.mode_label %></span></div>
     <table class="table"><thead><tr><th>Invoice</th><th>Date</th><th class="num">Applied</th></tr></thead>
-      <tbody><% p.allocations.includes(:invoice).each do |a| %><tr><td><%= link_to a.invoice.number, a.invoice, class: "link" %></td><td class="text-slate-500"><%= d a.invoice.invoice_date %></td><td class="num"><%= inr a.amount_paise %></td></tr><% end %></tbody></table>
+      <tbody><% p.allocations.includes(:invoice).each do |a| %><tr><td><%= a.invoice ? link_to(a.invoice.number, a.invoice, class: "link") : a.target_label %></td><td class="text-slate-500"><%= d(a.invoice&.invoice_date || a.ledger_entry&.entry_date) %></td><td class="num"><%= inr a.amount_paise %></td></tr><% end %></tbody></table>
     <% if p.unallocated_paise.positive? %><div class="border-t border-slate-100 px-5 py-3 text-sm text-emerald-700"><%= inr p.unallocated_paise %> kept as advance — applied automatically to the next bill.</div><% end %>
   </div>
   <div class="space-y-4">

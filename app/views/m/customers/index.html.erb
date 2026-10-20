@@ -5,4 +5,4 @@
     <%= link_to m_customer_path(c), class: "m-tap" do %><div class="min-w-0 flex-1"><div class="truncate font-medium"><%= c.shop_name %></div><div class="text-xs text-slate-500"><%= c.market&.name %></div></div><%= icon "chevron-right", class: "size-4 text-slate-300" %><% end %>
   <% end %>
 </div>
-<% if Current.user.salesman? && params[:all] != "1" %><%= link_to "Show all markets", m_customers_path(all: 1, q: params[:q]), class: "block py-3 text-center text-sm text-brand-700" %><% end %>
+

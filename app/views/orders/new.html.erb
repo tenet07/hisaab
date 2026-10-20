@@ -5,7 +5,7 @@
 <%= form_with url: orders_path, class: "space-y-4", data: { controller: "lines" } do |f| %>
   <div class="card-pad grid gap-4 sm:grid-cols-3">
     <div class="field sm:col-span-2"><label class="label">Customer</label>
-      <%= combobox name: "customer_id", value: @order.customer_id, label: @order.customer&.shop_name, source: "customer-catalog", autofocus: @order.customer_id.nil? %></div>
+      <%= combobox name: "customer_id", value: @order.customer_id, label: @order.customer&.shop_name, source: "customer-catalog", autofocus: @order.customer_id.nil?, extra_action: "combobox:picked->lines#customer" %></div>
     <div class="field"><label class="label">Channel</label><%= f.select :channel, Order::CHANNELS.map { [_1.capitalize, _1] }, { selected: @order.channel }, class: "input" %></div>
   </div>
   <div class="card"><%= render "shared/lines_table", prefix: "lines", lines: [], editable_rate: can_set_rates? %></div>

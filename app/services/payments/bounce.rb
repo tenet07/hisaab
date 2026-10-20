@@ -5,6 +5,7 @@ module Payments
 
     def call(payment, reason:)
       raise ArgumentError, "Already marked bounced" if payment.bounced?
+      raise ArgumentError, "Only cheques can bounce" unless payment.mode == "cheque"
       Payment.transaction do
         LedgerEntry.create!(party: payment.customer, entry_date: Date.current, debit_paise: payment.amount_paise,
                             entry_type: "payment_bounce", document: payment, narration: "Bounced #{payment.number}: #{reason}")

@@ -378,7 +378,8 @@ CREATE TABLE public.credit_notes (
     created_by_id bigint,
     notes text,
     created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
+    updated_at timestamp(6) without time zone NOT NULL,
+    round_off_paise bigint DEFAULT 0 NOT NULL
 );
 
 
@@ -461,7 +462,8 @@ CREATE TABLE public.deliveries (
     notes text,
     client_uuid character varying,
     created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
+    updated_at timestamp(6) without time zone NOT NULL,
+    otp_failures integer DEFAULT 0 NOT NULL
 );
 
 
@@ -804,9 +806,11 @@ ALTER SEQUENCE public.orders_id_seq OWNED BY public.orders.id;
 CREATE TABLE public.payment_allocations (
     id bigint NOT NULL,
     payment_id bigint NOT NULL,
-    invoice_id bigint NOT NULL,
+    invoice_id bigint,
     amount_paise bigint NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL
+    created_at timestamp(6) without time zone NOT NULL,
+    ledger_entry_id bigint,
+    CONSTRAINT allocation_one_target CHECK (((invoice_id IS NULL) <> (ledger_entry_id IS NULL)))
 );
 
 
@@ -1097,7 +1101,7 @@ CREATE TABLE public.shop_settings (
     einvoice_enabled boolean DEFAULT false NOT NULL,
     claim_flag_days integer DEFAULT 45 NOT NULL,
     discount_approval_pct numeric(5,2) DEFAULT 10.0 NOT NULL,
-    writeoff_approval_paise bigint DEFAULT 0 NOT NULL,
+    writeoff_approval_paise bigint DEFAULT 500000 NOT NULL,
     whatsapp_provider character varying DEFAULT 'log'::character varying NOT NULL,
     bank_details text,
     created_at timestamp(6) without time zone NOT NULL,
@@ -1206,7 +1210,7 @@ CREATE TABLE public.stock_movements (
     device character varying,
     note text,
     created_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT stock_movement_bucket CHECK (((bucket)::text = ANY ((ARRAY['sellable'::character varying, 'awaiting_claim'::character varying, 'with_brand'::character varying, 'written_off'::character varying])::text[]))),
+    CONSTRAINT stock_movement_bucket CHECK (((bucket)::text = ANY (ARRAY[('sellable'::character varying)::text, ('awaiting_claim'::character varying)::text, ('with_brand'::character varying)::text, ('written_off'::character varying)::text]))),
     CONSTRAINT stock_movement_nonzero CHECK ((quantity <> 0))
 );
 
@@ -2287,6 +2291,13 @@ CREATE INDEX index_payment_allocations_on_invoice_id ON public.payment_allocatio
 
 
 --
+-- Name: index_payment_allocations_on_ledger_entry_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_payment_allocations_on_ledger_entry_id ON public.payment_allocations USING btree (ledger_entry_id);
+
+
+--
 -- Name: index_payment_allocations_on_payment_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2724,6 +2735,14 @@ ALTER TABLE ONLY public.whatsapp_messages
 
 
 --
+-- Name: payment_allocations fk_rails_654fe7b556; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment_allocations
+    ADD CONSTRAINT fk_rails_654fe7b556 FOREIGN KEY (ledger_entry_id) REFERENCES public.ledger_entries(id);
+
+
+--
 -- Name: suppliers fk_rails_6742f066e1; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2994,6 +3013,7 @@ ALTER TABLE ONLY public.purchases
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261020090000'),
 ('20261020060101'),
 ('20261020060100'),
 ('20261020060000'),

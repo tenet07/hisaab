@@ -14,7 +14,13 @@ module LineItems
     products = Product.where(id: rows.map { _1["product_id"] }).index_by(&:id)
     rows.filter_map do |r|
       product = products[r["product_id"].to_i]
-      next unless product && r["quantity"].to_i.positive?
+      next unless product && r["quantity"].present?
+      q = r["quantity"].to_s.strip
+      raise ArgumentError, "Quantity for #{product.display_name} must be a whole number of pieces" unless q.match?(/\A\d+\z/)
+      raise ArgumentError, "Quantity for #{product.display_name} is too large" if q.to_i > 100_000
+      next unless q.to_i.positive?
+      disc = r["discount_pct"].presence || "0"
+      raise ArgumentError, "Discount must be a number between 0 and 100" unless disc.to_s.match?(/\A\d+(\.\d+)?\z/) && disc.to_d <= 100
       tier = product.price_paise_for(customer)
       rate = can_set_rates? && r["rate"].present? ? Money.to_paise(r["rate"]) : tier
       { product: product, quantity: r["quantity"].to_i, rate_paise: rate, discount_pct: r["discount_pct"].to_d }
@@ -23,6 +29,22 @@ module LineItems
 
   def can_set_rates? = Current.user.owner? || Current.user.accounts?
 
+  # Bills on credit that would take a customer past their credit limit need the owner.
+  # Returns a message to show when the bill is held, nil when it may go ahead.
+  def credit_hold(customer, items, subject: nil)
+    return if Current.user.owner? || customer.credit_limit_paise.zero?
+    total = Invoicing::Post.estimate(customer: customer, items: items)
+    return unless customer.over_credit_limit?(total)
+    if subject
+      return if Approval.where(subject: subject, kind: "credit_limit", status: "approved", amount_paise: total).exists?
+      Approvals.request!(subject, kind: "credit_limit", amount_paise: total,
+                                  reason: "#{customer.shop_name}: balance #{Money.format(customer.balance_paise)}, limit #{Money.format(customer.credit_limit_paise)}")
+      "#{customer.shop_name} would go over their credit limit — sent to the owner for approval."
+    else
+      "#{customer.shop_name} would go over their #{Money.format(customer.credit_limit_paise)} credit limit. Take payment now, or save it as an order for the owner to approve."
+    end
+  end
+
   # Effective discount against the tier price, for the owner-approval rule.
   def over_discount_limit?(items, customer)
     limit = shop.discount_approval_pct.to_d
@@ -30,7 +52,7 @@ module LineItems
       tier = i[:product].price_paise_for(customer)
       next false if tier.zero?
       net = i[:rate_paise] * (100 - i[:discount_pct]) / 100
-      (tier - net) * 100 / tier > limit
+      (tier - net) * 100 / tier > limit || net > tier * 2 # big surcharges need a look too
     end
   end
 

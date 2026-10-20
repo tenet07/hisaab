@@ -4,7 +4,7 @@ module CatalogHelper
     stock = StockMovement.where(bucket: "sellable").group(:product_id).sum(:quantity)
     Product.active.includes(:brand).order(:brand_id, :name).map do |p|
       { id: p.id, label: p.display_name, meta: "#{p.sku} · #{stock[p.id].to_i} #{p.unit}", sku: p.sku, gst: p.gst_rate.to_f,
-        stock: stock[p.id].to_i, purchase: p.purchase_paise, unit: p.unit, warranty: p.effective_warranty_months,
+        stock: stock[p.id].to_i, unit: p.unit, **(can?(:margins) || can?(:purchases) ? { purchase: p.purchase_paise } : {}), warranty: p.effective_warranty_months,
         prices: { "wholesale" => p.price_paise_for(nil), "retail" => p.price_paise_for(Customer.new(price_tier: "retail")), "mrp" => p.mrp_paise },
         search: [p.display_name, p.sku, p.model, p.wattage, p.aliases].compact.join(" ").downcase }
     end.to_json
@@ -12,7 +12,7 @@ module CatalogHelper
 
   def customer_catalog_json
     Customer.active.includes(:market).order(:shop_name).map do |c|
-      { id: c.id, label: c.shop_name, meta: [c.code, c.market&.name].compact.join(" · "), tier: c.price_tier, b2b: c.gstin.present?,
+      { id: c.id, label: c.shop_name, meta: [c.code, c.market&.name].compact.join(" · "), tier: c.price_tier, b2b: c.gstin.present?, incl: c.prices_include_tax?,
         search: [c.shop_name, c.owner_name, c.code, c.phone, c.market&.name].compact.join(" ").downcase }
     end.to_json
   end

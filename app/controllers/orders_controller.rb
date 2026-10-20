@@ -63,6 +63,12 @@ class OrdersController < ApplicationController
         line.update!(attrs)
       end
       @order.update!(notes: params[:notes]) if params.key?(:notes)
+      # any change to the lines voids an owner approval given for the old figures
+      if rows.any?
+        Approval.where(subject: @order, status: %w[pending approved]).find_each do |a|
+          a.update!(status: "void", reason: [a.reason, "voided: order edited"].compact.join(" — "))
+        end
+      end
     end
     params[:then] == "confirm" ? confirm : redirect_to(@order, notice: "Saved.")
   end
@@ -80,9 +86,12 @@ class OrdersController < ApplicationController
       { product: l.product, quantity: l.quantity, rate_paise: l.effective_rate_paise, discount_pct: l.discount_pct }
     end
     if over_discount_limit?(items, @order.customer) && !Current.user.owner? &&
-       !Approval.where(subject: @order, kind: "discount", status: "approved").exists?
+       !Approval.where(subject: @order, kind: "discount", status: "approved", amount_paise: @order.estimate_paise).exists?
       Approvals.request!(@order, kind: "discount", reason: "#{@order.number} for #{@order.customer.shop_name}", amount_paise: @order.estimate_paise)
       return redirect_to(@order, alert: "A discount is above #{shop.discount_approval_pct.to_f}% — sent to the owner for approval.")
+    end
+    if (msg = credit_hold(@order.customer, items, subject: @order))
+      return redirect_to(@order, alert: msg)
     end
     inv = Invoicing::Post.call(customer: @order.customer, items: items, order: @order, channel: @order.channel,
                                allow_negative_stock: params[:allow_negative] == "1" && Current.user.owner?)

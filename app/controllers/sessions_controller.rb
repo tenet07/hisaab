@@ -1,6 +1,6 @@
 class SessionsController < ApplicationController
   allow_unauthenticated_access only: %i[new create]
-  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to new_session_url, alert: "Too many attempts. Try again in a few minutes." }
+  rate_limit to: 8, within: 3.minutes, only: :create, by: -> { "#{request.remote_ip}:#{params[:email_address].to_s.downcase}" }, with: -> { redirect_to new_session_url, alert: "Too many attempts. Try again in a few minutes." }
   layout "auth"
 
   def new; end

@@ -1,5 +1,7 @@
 module M
   class ReplacementsController < BaseController
+    before_action { authorize!(:replacements) }
+    before_action :own_customer!
     def new = @customer = Customer.find(params[:customer_id])
 
     def create

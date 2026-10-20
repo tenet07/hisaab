@@ -6,7 +6,8 @@ module Claims
     module_function
 
     def build(brand, replacements)
-      replacements = replacements.select { _1.claim_status == "awaiting" && _1.product.brand_id == brand.id && _1.brand_claim_id.nil? }
+      held = Approval.pending.where(kind: "write_off", subject_type: "Replacement").pluck(:subject_id).to_set
+      replacements = replacements.select { _1.claim_status == "awaiting" && _1.product.brand_id == brand.id && _1.brand_claim_id.nil? && !held.include?(_1.id) }
       raise Error, "No pieces awaiting a claim for #{brand.name}" if replacements.empty?
       BrandClaim.transaction do
         claim = BrandClaim.create!(brand: brand, supplier: brand.suppliers.first, created_by: Current.user)
@@ -20,6 +21,8 @@ module Claims
       raise Error, "Enter the challan number" if challan_no.blank?
       BrandClaim.transaction do
         claim.replacements.each do |r|
+          raise Error, "#{r.number} is #{r.status_label.downcase}; take it off this claim" unless r.claim_status == "awaiting"
+          Approval.pending.where(subject: r, kind: "write_off").find_each { _1.update!(status: "void", reason: "#{_1.reason} — voided: sent to brand") }
           StockMovement.post!([
             { product: r.product, bucket: "awaiting_claim", quantity: -1, reason: "claim_sent", document: claim },
             { product: r.product, bucket: "with_brand", quantity: 1, reason: "claim_sent", document: claim }

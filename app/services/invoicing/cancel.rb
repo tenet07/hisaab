@@ -6,6 +6,11 @@ module Invoicing
 
     def self.call(invoice, reason:) = new(invoice, reason).call
 
+    # GSTR-1 for a month is filed by the 11th of the next. After that the bill stays and a credit note corrects it.
+    def self.cancellable_period?(date, today = Date.current)
+      date >= today.beginning_of_month || (date >= today.prev_month.beginning_of_month && today.day <= 10)
+    end
+
     def initialize(invoice, reason)
       @invoice, @reason = invoice, reason.to_s.strip
     end
@@ -15,6 +20,7 @@ module Invoicing
       raise Error, "Already cancelled" if @invoice.cancelled?
       raise Error, "This invoice has credit notes; reverse those first" if @invoice.credit_notes.any?
       raise Error, "Delivered already — issue a return credit note instead" if @invoice.delivery&.done?
+      raise Error, "#{@invoice.number} belongs to a GST period that may already be filed — issue a credit note instead" unless self.class.cancellable_period?(@invoice.invoice_date)
 
       Invoice.transaction do
         @invoice.lock!

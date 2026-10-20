@@ -15,7 +15,7 @@
   <div class="space-y-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div><h1 class="page-title">Counter bill</h1><p class="page-sub">Scan or type SKU · <span class="kbd">↵</span> next line · tap a tile to add</p></div>
-      <span class="badge-blue" data-price-mode>Prices include GST (B2C)</span>
+      <span class="badge-blue" data-price-mode>Prices include GST</span>
     </div>
     <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
       <% stock = StockMovement.where(bucket: "sellable", product_id: @top.map(&:id)).group(:product_id).sum(:quantity) %>
@@ -28,7 +28,7 @@
         </button>
       <% end %>
     </div>
-    <div class="card"><%= render "shared/lines_table", prefix: "lines", lines: [], editable_rate: can_set_rates? %></div>
+    <div class="card overflow-x-auto"><div class="min-w-[640px]"><%= render "shared/lines_table", prefix: "lines", lines: [], editable_rate: can_set_rates? %></div></div>
   </div>
 
   <div class="card h-fit xl:sticky xl:top-6">
@@ -48,7 +48,7 @@
             <label class="btn cursor-pointer has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-800"><%= radio_button_tag :pay_mode, v, i.zero?, class: "sr-only" %><%= l %></label>
           <% end %>
         </div>
-        <%= f.text_field :pay_ref, class: "input mt-2", placeholder: "UTR / cheque no. (optional)" %>
+        <%= f.text_field :pay_ref, class: "input mt-2", placeholder: "Cheque no. + bank (needed for cheque) / UTR" %>
       </div>
       <label class="flex items-center gap-2 text-sm"><%= check_box_tag :whatsapp, "1", true %> WhatsApp the bill (dealers)</label>
       <%= f.button class: "btn-success btn-lg w-full py-3.5 text-lg" do %><%= icon "check", class: "size-5" %> Bill & finish<% end %>

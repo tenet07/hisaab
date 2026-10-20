@@ -8,7 +8,7 @@
     <%= button_to send_whatsapp_invoice_path(inv), class: "btn" do %><%= icon "whatsapp", class: "size-4 text-[#25d366]" %> Send<% end %>
   <% end %>
   <% if inv.posted? && can?(:credit_notes) && !Current.user.read_only? %><%= link_to "Credit note", new_invoice_credit_note_path(inv), class: "btn" %><% end %>
-  <% if inv.unpaid? && can?(:payments) && !Current.user.read_only? %><%= link_to new_payment_path(customer_id: inv.customer_id, amount: inv.outstanding_paise / 100.0), class: "btn-primary" do %><%= icon "rupee", class: "size-4" %> Record payment<% end %><% end %>
+  <% if inv.unpaid? && can?(:ledgers) && !Current.user.read_only? %><%= link_to new_payment_path(customer_id: inv.customer_id, amount: inv.outstanding_paise / 100.0), class: "btn-primary" do %><%= icon "rupee", class: "size-4" %> Record payment<% end %><% end %>
 <% end %>
 
 <% if inv.cancelled? %><div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">Cancelled <%= dt inv.cancelled_at %> by <%= inv.cancelled_by&.name %>: <%= inv.cancel_reason %>. Stock and ledger were reversed.</div><% end %>
@@ -49,6 +49,7 @@
   </div>
 
   <div class="space-y-4">
+    <% if can?(:ledgers) %>
     <div class="card">
       <div class="card-head"><h2 class="card-title">Money</h2></div>
       <div class="space-y-1.5 p-5 text-sm">
@@ -61,6 +62,7 @@
         <% inv.credit_notes.each do |cn| %><li class="flex justify-between px-5 py-2"><%= link_to cn.number, cn, class: "link" %><span class="tnum text-slate-500"><%= cn.reason_label %> · <%= inr cn.total_paise %></span></li><% end %>
       </ul>
     </div>
+    <% end %>
     <% if inv.delivery %>
       <div class="card-pad text-sm"><div class="card-title mb-1">Delivery</div><%= status_badge inv.delivery.status %> <%= link_to inv.delivery.dispatch_run.market.name, inv.delivery.dispatch_run, class: "link" %> · <%= d inv.delivery.dispatch_run.run_date %>
         <% if inv.delivery.delivered_at %><div class="mt-1 text-slate-500">Proof: <%= inv.delivery.proof %> · <%= dt inv.delivery.delivered_at %></div><% end %></div>

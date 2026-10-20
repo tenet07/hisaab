@@ -9,7 +9,7 @@ class User < ApplicationRecord
                      dispatch counts reports exports whatsapp approvals_request audit margins],
     "counter"  => %i[orders invoices invoice_post payments stock_lookup replacements customers products counter_pos],
     "salesman" => %i[mobile visits orders payments replacements stock_lookup],
-    "delivery" => %i[mobile route deliveries payments],
+    "delivery" => %i[mobile route deliveries],
     "ca"       => %i[dashboard invoices credit_notes payments ledgers customers products stock purchases reports exports audit margins]
   }.freeze
 

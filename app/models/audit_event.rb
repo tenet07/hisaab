@@ -1,5 +1,6 @@
 class AuditEvent < ApplicationRecord
   belongs_to :user, optional: true
+  # the person a sync rejection belongs to is also its subject
   belongs_to :subject, polymorphic: true, optional: true
 
   def readonly? = persisted?

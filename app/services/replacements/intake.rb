@@ -23,6 +23,9 @@ module Replacements
       if @uuid && (r = Replacement.find_by(client_uuid: @uuid))
         return r
       end
+      if @invoice && (@invoice.customer_id != @customer.id || !@invoice.posted? || @invoice.lines.none? { _1.product_id == @product.id })
+        raise Error, "Invoice #{@invoice.number} didn't sell #{@product.display_name} to #{@customer.shop_name}"
+      end
       info = @invoice ? self.class.lookup_on(@invoice, @product) : self.class.lookup(@customer, @product)
       if @outcome == "swapped" && !info[:valid]
         raise Error, info[:invoice] ? "Out of warranty (ended #{info[:warranty_until].strftime('%d %b %Y')}). Bill a new piece instead." : "No invoice found for this product to this customer — warranty can't be checked." unless @goodwill

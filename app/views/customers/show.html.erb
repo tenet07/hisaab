@@ -23,7 +23,7 @@
 
 <div class="tabs mb-4">
   <% tabs = { "ledger" => "Ledger", "bills" => "Unpaid bills", "replacements" => "Replacements", "profile" => "Profile" } %>
-  <% tabs.delete("ledger") unless can?(:ledgers) %>
+  <% tabs = tabs.except("ledger", "bills") unless can?(:ledgers) %>
   <% tabs.each do |k, v| %><%= link_to v, customer_path(c, tab: k), class: ["tab", ("active" if @tab == k)] %><% end %>
 </div>
 
@@ -64,7 +64,7 @@
   <div class="grid gap-5 lg:grid-cols-[1fr_300px]">
     <div class="card overflow-x-auto">
       <table class="table"><thead><tr><th>Invoice</th><th>Date</th><th>Due</th><th class="num">Total</th><th class="num">Outstanding</th><th>Status</th></tr></thead>
-        <tbody><% @open.each do |i| %><tr><td><%= link_to i.number, i, class: "link" %></td><td class="text-slate-500"><%= d i.invoice_date %></td><td class="text-slate-500"><%= d i.due_date %></td>
+        <tbody><% @open.each do |i| %><tr><td><%= i.is_a?(Invoice) ? link_to(i.number, i, class: "link") : i.number %></td><td class="text-slate-500"><%= d i.invoice_date %></td><td class="text-slate-500"><%= d i.due_date %></td>
           <td class="num"><%= inr i.total_paise %></td><td class="num font-medium"><%= inr i.outstanding_paise %></td><td><%= status_badge i.payment_state %><% if i.overdue? %> <span class="text-xs text-rose-600"><%= i.days_overdue %>d</span><% end %></td></tr><% end %></tbody></table>
       <% if @open.empty? %><%= empty_state "Nothing unpaid. 🎉" %><% end %>
     </div>

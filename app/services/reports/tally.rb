@@ -110,7 +110,7 @@ module Reports
     def receipt(x, p)
       voucher(x, "Receipt", p.number, p.received_on, name(p.customer), "#{p.mode_label} #{p.reference}".strip) do
         entry(x, p.mode == "cash" ? LEDGERS[:cash] : LEDGERS[:bank], p.amount_paise, debit: true)
-        p.allocations.includes(:invoice).each { |a| entry(x, name(p.customer), a.amount_paise, debit: false, bill: a.invoice.number, bill_type: "Agst Ref") }
+        p.allocations.includes(:invoice).each { |a| entry(x, name(p.customer), a.amount_paise, debit: false, bill: a.target_label, bill_type: "Agst Ref") }
         entry(x, name(p.customer), p.unallocated_paise, debit: false, bill: p.number, bill_type: "Advance") if p.unallocated_paise.positive?
       end
     end

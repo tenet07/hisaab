@@ -18,7 +18,7 @@ class StatementPdf < BasePdf
     table_style(t, num_cols: [2, 3, 4])
     t.row(-1).font_style = :bold
     t.draw
-    open = customer.open_invoices
+    open = customer.open_items
     if open.any?
       move_down 14
       text "Unpaid bills", style: :bold

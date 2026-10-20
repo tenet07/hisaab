@@ -1,9 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
-import { pending, remove } from "lib/outbox"
+import { pending, failed, remove, markFailed } from "lib/outbox"
 
 // Sends whatever field staff saved without signal, as soon as there is signal.
 export default class extends Controller {
-  static targets = ["badge", "offline"]
+  static targets = ["badge", "offline", "failed"]
   static values = { syncUrl: String }
 
   connect() {
@@ -28,7 +28,21 @@ export default class extends Controller {
     const n = pending().length
     if (this.hasBadgeTarget) { this.badgeTarget.hidden = n === 0; this.badgeTarget.textContent = `${n} to sync` }
     if (this.hasOfflineTarget) this.offlineTarget.hidden = navigator.onLine
+    if (this.hasFailedTarget) {
+      const bad = failed()
+      this.failedTarget.hidden = bad.length === 0
+      this.failedTarget.innerHTML = bad.map(i => `
+        <div class="flex items-start gap-2 border-t border-rose-200 py-2 first:border-0">
+          <div class="flex-1"><b>${this.label(i)}</b> saved ${new Date(i.saved_at).toLocaleString("en-IN")} was not accepted:<br>${this.esc(i.error)}
+            ${i.params?.amount ? `<br>Cash/amount entered: ₹${this.esc(i.params.amount)} — hand it over and tell the office.` : ""}</div>
+          <button type="button" data-uuid="${i.client_uuid}" data-action="outbox#dismiss" class="rounded-lg bg-white px-2 py-1 text-xs font-medium ring-1 ring-rose-300">Seen</button>
+        </div>`).join("")
+    }
   }
+
+  dismiss(e) { remove(e.currentTarget.dataset.uuid); this.status() }
+  label(i) { return { order: "Order", payment: "Payment", replacement: "Replacement", drop: "Delivery" }[i.kind] || "Entry" }
+  esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])) }
 
   async flush() {
     const items = pending()
@@ -43,14 +57,14 @@ export default class extends Controller {
       })
       if (!res.ok) return
       const { results } = await res.json()
-      const failed = []
+      const errors = []
       results.forEach(r => {
-        if (r.ok || r.permanent) remove(r.client_uuid)
-        if (!r.ok) failed.push(r.error)
+        if (r.ok) remove(r.client_uuid)
+        else if (r.permanent) { markFailed(r.client_uuid, r.error); errors.push(r.error) }
       })
       const synced = results.filter(r => r.ok).length
       if (synced) this.toast(`${synced} saved entr${synced === 1 ? "y" : "ies"} synced ✓`)
-      if (failed.length) this.toast(`Couldn't sync: ${failed.join("; ")}`, true)
+      if (errors.length) this.toast(`Not accepted: ${errors.join("; ")} — see the red box`, true)
     } catch (_) { /* still offline */ } finally { this.busy = false; this.status() }
   }
 

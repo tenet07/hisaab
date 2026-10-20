@@ -7,5 +7,7 @@ class Delivery < ApplicationRecord
   validates :status, inclusion: { in: STATUSES }
   before_create { self.otp_code ||= format("%04d", SecureRandom.random_number(10_000)) }
   delegate :customer, to: :invoice
-  def done? = status != "pending"
+  def done? = %w[delivered partial].include?(status)
+  def failed? = status == "failed"
+  def closed? = status != "pending"
 end

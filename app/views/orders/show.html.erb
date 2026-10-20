@@ -16,7 +16,7 @@
     <% end %>
 
     <% if @order.editable? %>
-      <%= form_with url: order_path(@order), method: :patch, data: { controller: "lines", lines_tier_value: @order.customer.price_tier } do |f| %>
+      <%= form_with url: order_path(@order), method: :patch, data: { controller: "lines", lines_tier_value: @order.customer.price_tier, lines_inclusive_value: @order.customer.prices_include_tax? } do |f| %>
         <div class="card">
           <div class="card-head"><h2 class="card-title">Lines</h2>
             <% if @order.needs_review? %><span class="badge-amber"><%= icon "alert", class: "size-3" %> Some lines need a check</span><% end %></div>

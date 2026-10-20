@@ -1,5 +1,7 @@
 module M
   class OrdersController < BaseController
+    before_action { authorize!(:orders) }
+    before_action :own_customer!
     include LineItems
 
     def new

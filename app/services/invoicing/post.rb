@@ -7,22 +7,41 @@ module Invoicing
     # items: [{ product:, quantity:, rate_paise: (nil = tier price), discount_pct: }]
     def self.call(**kw) = new(**kw).call
 
-    def initialize(customer:, items:, date: Date.current, order: nil, channel: "counter", inclusive: false,
+    # What the bill would total, without posting anything
+    def self.estimate(customer:, items:, inclusive: nil) = new(customer: customer, items: items, inclusive: inclusive).calculator.total_paise
+
+    def initialize(customer:, items:, date: Date.current, order: nil, channel: "counter", inclusive: nil,
                    allow_negative_stock: false, bill_to_name: nil)
       @customer, @items, @date, @order, @channel = customer, items, date.to_date, order, channel
-      @inclusive, @allow_negative, @bill_to_name = inclusive, allow_negative_stock, bill_to_name
+      @inclusive = inclusive.nil? ? customer.prices_include_tax? : inclusive
+      @allow_negative, @bill_to_name = allow_negative_stock, bill_to_name
     end
+
+    def calculator
+      shop = ShopSetting.current
+      calc = Gst::Calculator.new(interstate: place_of_supply != shop.state_code, inclusive: @inclusive)
+      @items.select { _1[:product] && _1[:quantity].to_i.positive? }.each do |i|
+        calc.add(product: i[:product], quantity: i[:quantity],
+                 rate_paise: i[:rate_paise] || i[:product].price_paise_for(@customer), discount_pct: i[:discount_pct] || 0)
+      end
+      calc
+    end
+
+    def place_of_supply = @customer.state_code.presence || ShopSetting.current.state_code
 
     def call
       items = @items.select { _1[:product] && _1[:quantity].to_i.positive? }
       raise Error, "Add at least one item" if items.empty?
-      shop = ShopSetting.current
-      pos = @customer.state_code.presence || shop.state_code
-      calc = Gst::Calculator.new(interstate: pos != shop.state_code, inclusive: @inclusive)
       items.each do |i|
-        calc.add(product: i[:product], quantity: i[:quantity],
-                 rate_paise: i[:rate_paise] || i[:product].price_paise_for(@customer), discount_pct: i[:discount_pct] || 0)
+        raise Error, "Discount must be between 0 and 100%" unless (0..100).cover?(i[:discount_pct].to_d)
+        raise Error, "Rate can't be negative" if i[:rate_paise].to_i.negative?
+        raise Error, "Quantity for #{i[:product].display_name} is too large" if i[:quantity].to_i > 100_000
       end
+      raise Error, "An invoice can't be dated in the future" if @date > Date.current
+      shop = ShopSetting.current
+      pos = place_of_supply
+      calc = calculator
+      raise Error, "The bill total must be above zero" unless calc.total_paise.positive?
 
       Invoice.transaction do
         check_stock!(calc.lines) unless @allow_negative

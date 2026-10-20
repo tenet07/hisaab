@@ -5,7 +5,9 @@ class InvoicesController < ApplicationController
   before_action :set_invoice, only: %i[show cancel send_whatsapp eway]
 
   def index
-    scope = Invoice.includes(:customer, :payment_allocations, :credit_notes).recent
+    scope = Invoice.with_outstanding.includes(:customer).recent
+    # counter staff see the bills they made this week, to reprint — not everyone's dues
+    scope = scope.where(posted_by: Current.user, invoice_date: 7.days.ago.to_date..) unless can?(:ledgers)
     @from = params[:from].presence && date_param(params[:from])
     @to = params[:to].presence && date_param(params[:to])
     scope = scope.where(invoice_date: @from..) if @from
@@ -23,6 +25,7 @@ class InvoicesController < ApplicationController
   end
 
   def show
+    raise Forbidden unless can?(:ledgers) || @invoice.posted_by_id == Current.user.id || @invoice.customer.code == "CASH"
     @invoice.lines.load
     respond_to do |f|
       f.html
@@ -38,7 +41,11 @@ class InvoicesController < ApplicationController
   def create
     authorize!(:invoice_post)
     customer = Customer.find(params.require(:customer_id))
+    raise ArgumentError, "Walk-in sales are billed and paid at the counter screen" if customer.code == "CASH"
     items = line_items(params[:lines], customer: customer)
+    if (msg = credit_hold(customer, items))
+      raise ArgumentError, msg
+    end
     if over_discount_limit?(items, customer) && !Current.user.owner?
       raise ArgumentError, "A discount is above #{shop.discount_approval_pct.to_f}%. Save it as an order — the owner approves it from the queue."
     end

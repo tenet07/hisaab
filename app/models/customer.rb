@@ -54,9 +54,11 @@ class Customer < ApplicationRecord
 
   def balance_on(date) = ledger_entries.where(entry_date: ..date).sum("debit_paise - credit_paise").to_i
 
-  def open_invoices = invoices.posted.order(:invoice_date, :id).select(&:unpaid?)
-  def oldest_unpaid = open_invoices.first
-  def overdue_paise(on = Date.current) = open_invoices.select { _1.due_date < on }.sum(&:outstanding_paise)
+  # unpaid bills and unpaid opening balance, oldest first
+  def open_items = @open_items ||= Receivables.open_items([id])
+  def open_invoices = open_items.grep(Invoice)
+  def oldest_unpaid = open_items.first
+  def overdue_paise(on = Date.current) = open_items.select { _1.due_date < on }.sum(&:outstanding_paise)
 
   # Payments not yet matched to an invoice (paid in advance or more than was due)
   def unallocated_paise
@@ -64,14 +66,12 @@ class Customer < ApplicationRecord
   end
 
   def ageing(on = Date.current)
-    buckets = { "0–30" => 0, "31–60" => 0, "61–90" => 0, "90+" => 0 }
-    open_invoices.each do |inv|
-      days = (on - inv.invoice_date).to_i
-      key = days <= 30 ? "0–30" : days <= 60 ? "31–60" : days <= 90 ? "61–90" : "90+"
-      buckets[key] += inv.outstanding_paise
-    end
-    buckets
+    open_items.each_with_object(Receivables.empty_ageing) { |i, b| b[Receivables.ageing_bucket(i, on)] += i.outstanding_paise }
   end
+
+  # Walk-in and retail-tier customers are quoted MRP-style prices that include GST;
+  # dealers on the wholesale rate list are billed rate + GST, at the counter or anywhere else.
+  def prices_include_tax? = !b2b? && price_tier != "wholesale"
 
   def over_credit_limit?(extra_paise = 0) = credit_limit_paise.positive? && balance_paise + extra_paise > credit_limit_paise
   def interstate? = state_code.present? && state_code != ShopSetting.current.state_code

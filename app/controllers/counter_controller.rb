@@ -18,14 +18,18 @@ class CounterController < ApplicationController
     if over_discount_limit?(items, customer) && !Current.user.owner?
       raise ArgumentError, "Discount above #{shop.discount_approval_pct.to_f}% needs the owner. Ask them to bill it."
     end
+    on_credit = params[:pay_mode].blank? || params[:pay_mode] == "credit"
+    raise ArgumentError, "A walk-in sale must be paid now (cash or UPI). Pick a customer to bill on credit." if on_credit && customer == walk_in
+    if on_credit && (msg = credit_hold(customer, items))
+      raise ArgumentError, msg
+    end
     inv = nil
     Invoice.transaction do
-      inv = Invoicing::Post.call(customer: customer, items: items, channel: "counter", inclusive: !customer.b2b?,
+      inv = Invoicing::Post.call(customer: customer, items: items, channel: "counter",
                                  bill_to_name: (params[:bill_to_name].presence if customer == walk_in))
-      if params[:pay_mode].present? && params[:pay_mode] != "credit"
-        Payments::Record.call(customer: customer, amount_paise: inv.total_paise, mode: params[:pay_mode], reference: params[:pay_ref])
-      elsif customer == walk_in
-        raise ArgumentError, "A walk-in sale must be paid now (cash or UPI). Pick a customer to bill on credit."
+      unless on_credit
+        # the money is for this bill, so it settles this bill — not an older one
+        Payments::Record.call(customer: customer, amount_paise: inv.total_paise, mode: params[:pay_mode], reference: params[:pay_ref], apply_to: inv)
       end
     end
     WhatsappNotifier.invoice(inv) if params[:whatsapp] == "1" && customer != walk_in

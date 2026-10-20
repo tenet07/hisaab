@@ -12,7 +12,7 @@
 <% end %>
 <div class="card overflow-x-auto">
   <table class="table">
-    <thead><tr><th>Invoice</th><th>Date</th><th>Customer</th><th>Channel</th><th class="num">Total</th><th class="num">Outstanding</th><th>Status</th></tr></thead>
+    <thead><tr><th>Invoice</th><th>Date</th><th>Customer</th><th>Channel</th><th class="num">Total</th><% if can?(:ledgers) %><th class="num">Outstanding</th><th>Status</th><% end %></tr></thead>
     <tbody>
       <% @invoices.each do |i| %>
         <tr class="<%= 'opacity-60' if i.cancelled? %>">
@@ -21,12 +21,12 @@
           <td><%= link_to i.bill_to_name, i.customer, class: "hover:underline" %></td>
           <td><%= channel_badge i.channel %></td>
           <td class="num"><%= inr i.total_paise %></td>
-          <td class="num"><%= i.outstanding_paise.positive? ? inr(i.outstanding_paise) : "—" %></td>
-          <td><%= status_badge i.payment_state %></td>
+          <% if can?(:ledgers) %><td class="num"><%= i.outstanding_paise.positive? ? inr(i.outstanding_paise) : "—" %></td>
+          <td><%= status_badge i.payment_state %></td><% end %>
         </tr>
       <% end %>
     </tbody>
-    <tfoot class="border-t border-slate-200 bg-slate-50 font-semibold"><tr><td colspan="4" class="px-4 py-2"><%= @invoices.size %> invoices</td><td class="num px-4 py-2"><%= inr @totals[:total] %></td><td class="num px-4 py-2"><%= inr @totals[:due] %></td><td></td></tr></tfoot>
+    <tfoot class="border-t border-slate-200 bg-slate-50 font-semibold"><tr><td colspan="4" class="px-4 py-2"><%= @invoices.size %> invoices</td><td class="num px-4 py-2"><%= inr @totals[:total] %></td><% if can?(:ledgers) %><td class="num px-4 py-2"><%= inr @totals[:due] %></td><td></td><% end %></tr></tfoot>
   </table>
   <% if @invoices.empty? %><%= empty_state "No invoices match." %><% end %>
 </div>
