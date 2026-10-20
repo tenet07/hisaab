@@ -15,9 +15,6 @@ services:
     env_file: .env
     environment: &env
       DATABASE_URL: postgres://hisaab:${POSTGRES_PASSWORD}@db/hisaab_production
-      CACHE_DATABASE_URL: postgres://hisaab:${POSTGRES_PASSWORD}@db/hisaab_production_cache
-      QUEUE_DATABASE_URL: postgres://hisaab:${POSTGRES_PASSWORD}@db/hisaab_production_queue
-      CABLE_DATABASE_URL: postgres://hisaab:${POSTGRES_PASSWORD}@db/hisaab_production_cable
     ports: ["3000:3000"]
     volumes: [storage:/rails/storage]
   jobs:

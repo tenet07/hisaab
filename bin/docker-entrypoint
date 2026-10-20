@@ -2,5 +2,7 @@
 # Prepare the database (runs migrations, keeps the append-only triggers) before starting the server.
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ] || [ "$1" == "./bin/rails" ] && [ "$2" == "server" ]; then
   ./bin/rails db:prepare
+  # demo shop for trying it out (skips itself once anything exists)
+  if [ "${SEED_DEMO}" == "true" ]; then ./bin/rails db:seed; fi
 fi
 exec "${@}"

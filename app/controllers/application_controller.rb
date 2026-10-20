@@ -1,6 +1,7 @@
 class ApplicationController < ActionController::Base
   include Authentication
-  allow_browser versions: :modern
+  # phones a few years old must still work at the counter and on the road
+  allow_browser versions: { safari: 16.4, chrome: 105, firefox: 115, opera: 91, ie: false }
   before_action :stamp_device
   helper_method :can?, :shop
 

@@ -14,7 +14,7 @@ shop.update!(name: "Shree Ganesh Electricals", legal_name: "Shree Ganesh Electri
              bank_details: "HDFC Bank · A/c 50200012345678 · IFSC HDFC0000123")
 shop.update_columns(gstin: nil) unless Gstin.valid?(shop.gstin)
 
-pw = "hisaab123"
+pw = ENV["DEMO_PASSWORD"].presence || "hisaab123"
 owner    = User.create!(name: "Rajesh Mehta", email_address: "owner@hisaab.test", password: pw, role: "owner", phone: "919820000001")
 accounts = User.create!(name: "Priya Nair", email_address: "accounts@hisaab.test", password: pw, role: "accounts")
 counter  = User.create!(name: "Sunil Patil", email_address: "counter@hisaab.test", password: pw, role: "counter")
@@ -126,4 +126,4 @@ end
 
 Stock::Reorder.apply!(Stock::Reorder.suggestions)
 Order.create!(customer: customers[2], channel: "whatsapp", raw_message: "Bhai 9w philips 50 pc aur 20w batten 10 bhej do", status: "draft")
-puts "Seeded: #{Invoice.count} invoices, #{Payment.count} payments, #{Replacement.count} replacements. Login owner@hisaab.test / #{pw}"
+puts "Seeded: #{Invoice.count} invoices, #{Payment.count} payments, #{Replacement.count} replacements. Login owner@hisaab.test"

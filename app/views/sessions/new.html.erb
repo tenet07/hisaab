@@ -18,6 +18,12 @@
         <%= form.submit "Sign in", class: "btn-primary btn-lg w-full" %>
       <% end %>
     </div>
+    <% if Rails.env.production? && ENV["SEED_DEMO"] == "true" %>
+      <div class="mt-6 rounded-xl border border-dashed border-slate-300 bg-white/60 p-4 text-xs text-slate-600">
+        <div class="mb-1 font-semibold text-slate-700">Demo shop</div>
+        owner@ · accounts@ · counter@ · amit@ (salesman) · delivery@ · ca@ — all <code>@hisaab.test</code>, with the demo password you set when deploying.
+      </div>
+    <% end %>
     <% if Rails.env.development? %>
       <div class="mt-6 rounded-xl border border-dashed border-slate-300 bg-white/60 p-4 text-xs text-slate-600">
         <div class="mb-2 font-semibold text-slate-700">Demo logins (password <code>hisaab123</code>)</div>

@@ -37,6 +37,20 @@ bin/rails test            # ledger, GST, FIFO, claims, dispatch, parser tests
 Optional: `ANTHROPIC_API_KEY` (AI order reading), `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`,
 `WHATSAPP_APP_SECRET` (WhatsApp Cloud API), `GST_API_URL` / `GST_API_KEY` (e-invoicing), `APP_HOST` (links in WhatsApp messages).
 
+## Put it on your phone (free, about 10 minutes)
+
+1. Push this folder to a GitHub repository.
+2. On [render.com](https://render.com) sign in with GitHub → **New → Blueprint** → pick the repo. Render reads `render.yaml`
+   and creates the app and a Postgres database in Singapore (the closest free region to India).
+3. When it asks, type a **DEMO_PASSWORD** (the password for all demo logins) and leave the rest blank.
+4. When the deploy turns green, open the `https://hisaab-….onrender.com` link on your phone and sign in as
+   `amit@hisaab.test` (salesman), `delivery@hisaab.test` (delivery) or `owner@hisaab.test`, with your demo password.
+5. Add it to the home screen — iPhone: Safari → Share → *Add to Home Screen*; Android: Chrome → ⋮ → *Install app*.
+   It then opens full-screen like an app and keeps working without signal.
+
+The free plan sleeps after 15 minutes idle (the first open then takes ~1 minute) and its database expires after 30 days —
+fine for trying it out; use the server setup below for the real shop.
+
 ## Deploy (small server in India + daily backups)
 
 1. A 2 vCPU / 4 GB VM in Mumbai or Hyderabad (AWS Lightsail, DigitalOcean BLR, E2E Networks…) with Docker.

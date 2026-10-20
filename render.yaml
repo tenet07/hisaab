@@ -1,0 +1,32 @@
+# One-click deploy on Render (render.com → New → Blueprint → pick this repo).
+# Free tier: one web service (runs the background jobs inside Puma) + one Postgres in Singapore,
+# the closest Render region to India. Gives you an https://…onrender.com link to open on any phone.
+databases:
+  - name: hisaab-db
+    plan: free
+    region: singapore
+    databaseName: hisaab
+    user: hisaab
+
+services:
+  - type: web
+    name: hisaab
+    runtime: docker
+    plan: free
+    region: singapore
+    healthCheckPath: /up
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: { name: hisaab-db, property: connectionString }
+      - key: SECRET_KEY_BASE
+        generateValue: true
+      - key: SOLID_QUEUE_IN_PUMA
+        value: "true"
+      - key: SEED_DEMO
+        value: "true"
+      - key: DEMO_PASSWORD   # you type this when deploying; it's the password for every demo login
+        sync: false
+      - key: APP_HOST
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
