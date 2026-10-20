@@ -1,0 +1,40 @@
+<% c = @customer %>
+<% content_for :title, c.shop_name %>
+<% content_for :subtitle, [c.owner_name, c.market&.name].compact.join(" · ") %>
+<% content_for :back, m_root_path(market_id: c.market_id) %>
+<div class="rounded-2xl bg-white p-4 shadow-xs ring-1 ring-slate-200">
+  <div class="text-xs font-medium text-slate-500">Amount due</div>
+  <div class="mt-0.5 text-3xl font-semibold tracking-tight tnum <%= c.overdue_paise.positive? ? 'text-rose-600' : 'text-slate-900' %>"><%= c.balance_paise.negative? ? "#{inr0(-c.balance_paise)} advance" : inr0(c.balance_paise) %></div>
+  <% if c.overdue_paise.positive? %><div class="text-sm text-rose-600"><%= inr0 c.overdue_paise %> overdue</div><% end %>
+  <% if @oldest %>
+    <div class="mt-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm">
+      <div><div class="text-xs text-slate-500">Oldest unpaid bill</div><div class="font-medium"><%= @oldest.number %> · <%= short_d @oldest.invoice_date %></div></div>
+      <div class="text-right"><div class="tnum font-semibold"><%= inr0 @oldest.outstanding_paise %></div><% if @oldest.overdue? %><div class="text-xs text-rose-600"><%= @oldest.days_overdue %> days late</div><% end %></div>
+    </div>
+  <% end %>
+</div>
+
+<div class="grid grid-cols-3 gap-2">
+  <% [["New order", new_m_order_path(customer_id: c.id), "cart", "bg-brand-600"], ["Payment", new_m_payment_path(customer_id: c.id), "rupee", "bg-emerald-600"], ["Replacement", new_m_replacement_path(customer_id: c.id), "swap", "bg-amber-500"]].each do |label, path, ic, bg| %>
+    <%= link_to path, class: "flex flex-col items-center gap-1.5 rounded-2xl #{bg} px-2 py-4 text-sm font-semibold text-white shadow-sm active:opacity-90" do %><%= icon ic, class: "size-7" %><%= label %><% end %>
+  <% end %>
+</div>
+
+<div class="rounded-2xl bg-white shadow-xs ring-1 ring-slate-200">
+  <div class="px-4 pt-3 pb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">Last 3 orders</div>
+  <ul class="divide-y divide-slate-100">
+    <% @orders.each do |o| %><li class="px-4 py-2.5 text-sm"><div class="flex justify-between"><span class="font-medium"><%= short_d o.created_at %></span><%= status_badge o.status %></div><div class="mt-0.5 text-xs text-slate-500"><%= o.lines.map { "#{_1.product&.display_name} × #{_1.quantity}" }.join(", ") %></div></li><% end %>
+    <% if @orders.empty? %><li class="px-4 py-3 text-sm text-slate-400">No orders yet</li><% end %>
+  </ul>
+</div>
+<div class="rounded-2xl bg-white shadow-xs ring-1 ring-slate-200">
+  <div class="px-4 pt-3 pb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">Open replacements</div>
+  <ul class="divide-y divide-slate-100">
+    <% @replacements.each do |r| %><li class="flex justify-between px-4 py-2.5 text-sm"><span><%= r.product.display_name %><span class="block text-xs text-slate-500"><%= r.number %> · <%= short_d r.created_at %></span></span><%= status_badge r.claim_status %></li><% end %>
+    <% if @replacements.empty? %><li class="px-4 py-3 text-sm text-slate-400">None</li><% end %>
+  </ul>
+</div>
+<div class="flex gap-2">
+  <%= link_to "tel:+#{c.phone}", class: "btn flex-1 py-3" do %><%= icon "phone", class: "size-4" %> Call<% end %>
+  <%= link_to wa_link(c.phone), class: "btn flex-1 py-3" do %><%= icon "whatsapp", class: "size-4 text-[#25d366]" %> WhatsApp<% end %>
+</div>

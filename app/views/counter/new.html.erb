@@ -1,0 +1,58 @@
+<% content_for :title, "Counter" %>
+<%= catalog_script "product-catalog", product_catalog_json %>
+<%= catalog_script "customer-catalog", customer_catalog_json %>
+<% if @last %>
+  <div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+    <%= icon "check-circle", class: "size-5" %> <b><%= @last.number %></b> · <%= @last.bill_to_name %> · <%= inr @last.total_paise %> <%= @last.unpaid? ? "on credit" : "paid" %>
+    <div class="ml-auto flex gap-2">
+      <%= link_to invoice_path(@last, format: :pdf), class: "btn", target: "_blank" do %><%= icon "printer", class: "size-4" %> Print<% end %>
+      <% unless @last.customer.code == "CASH" %><%= button_to send_whatsapp_invoice_path(@last), class: "btn" do %><%= icon "whatsapp", class: "size-4 text-[#25d366]" %> WhatsApp<% end %><% end %>
+    </div>
+  </div>
+<% end %>
+<%= form_with url: counter_path, data: { controller: "lines", lines_tier_value: "retail", lines_inclusive_value: true, turbo_confirm: false } do |f| %>
+<div class="grid gap-5 xl:grid-cols-[1fr_400px]">
+  <div class="space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div><h1 class="page-title">Counter bill</h1><p class="page-sub">Scan or type SKU · <span class="kbd">↵</span> next line · tap a tile to add</p></div>
+      <span class="badge-blue" data-price-mode>Prices include GST (B2C)</span>
+    </div>
+    <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+      <% stock = StockMovement.where(bucket: "sellable", product_id: @top.map(&:id)).group(:product_id).sum(:quantity) %>
+      <% @top.each do |p| %>
+        <% item = { id: p.id, label: p.display_name, gst: p.gst_rate.to_f, stock: stock[p.id].to_i, prices: { "wholesale" => p.price_paise_for(nil), "retail" => p.price_paise_for(Customer.new(price_tier: "retail")), "mrp" => p.mrp_paise } } %>
+        <button type="button" data-action="lines#tile" data-item="<%= item.to_json %>" class="card group flex flex-col items-start gap-1 p-3 text-left transition hover:border-brand-400 hover:shadow-md active:scale-[0.98]">
+          <span class="text-[11px] font-medium text-slate-400"><%= p.brand.name %></span>
+          <span class="line-clamp-2 text-sm font-medium text-slate-800"><%= p.name %></span>
+          <span class="mt-auto flex w-full justify-between pt-1 text-xs"><span class="tnum font-semibold"><%= inr0 item[:prices]["retail"] %></span><span class="<%= item[:stock].positive? ? 'text-slate-400' : 'text-rose-600' %>"><%= item[:stock] %> left</span></span>
+        </button>
+      <% end %>
+    </div>
+    <div class="card"><%= render "shared/lines_table", prefix: "lines", lines: [], editable_rate: can_set_rates? %></div>
+  </div>
+
+  <div class="card h-fit xl:sticky xl:top-6">
+    <div class="space-y-4 p-5">
+      <div class="field"><label class="label">Customer</label>
+        <%= combobox name: "customer_id", source: "customer-catalog", placeholder: "Walk-in (cash) — or type a shop", extra_action: "combobox:picked->lines#customer" %></div>
+      <div class="field"><label class="label">Name on bill (walk-in, optional)</label><%= f.text_field :bill_to_name, class: "input", placeholder: "Cash customer" %></div>
+      <div class="space-y-1 rounded-xl bg-slate-50 p-4 text-sm">
+        <div class="flex justify-between text-slate-500"><span>Items</span><span data-lines-target="count">0</span></div>
+        <div class="flex justify-between text-slate-500"><span>Taxable</span><span class="tnum" data-lines-target="taxable"></span></div>
+        <div class="flex justify-between text-slate-500"><span>GST</span><span class="tnum" data-lines-target="tax"></span></div>
+        <div class="flex items-baseline justify-between pt-2"><span class="font-medium">To pay</span><span class="text-3xl font-semibold tracking-tight tnum" data-lines-target="total">₹0</span></div>
+      </div>
+      <div class="field"><span class="label">Payment</span>
+        <div class="grid grid-cols-4 gap-1.5">
+          <% [["cash", "Cash"], ["upi", "UPI"], ["cheque", "Cheque"], ["credit", "Credit"]].each_with_index do |(v, l), i| %>
+            <label class="btn cursor-pointer has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-800"><%= radio_button_tag :pay_mode, v, i.zero?, class: "sr-only" %><%= l %></label>
+          <% end %>
+        </div>
+        <%= f.text_field :pay_ref, class: "input mt-2", placeholder: "UTR / cheque no. (optional)" %>
+      </div>
+      <label class="flex items-center gap-2 text-sm"><%= check_box_tag :whatsapp, "1", true %> WhatsApp the bill (dealers)</label>
+      <%= f.button class: "btn-success btn-lg w-full py-3.5 text-lg" do %><%= icon "check", class: "size-5" %> Bill & finish<% end %>
+    </div>
+  </div>
+</div>
+<% end %>

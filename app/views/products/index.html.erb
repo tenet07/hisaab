@@ -1,0 +1,27 @@
+<% content_for :title, "Products" %>
+<%= page_header "Products", "#{@products.size} items" do %>
+  <% if can?(:products_edit) %>
+    <%= link_to "Reorder levels", reorder_products_path, class: "btn" %>
+    <%= link_to "Import CSV", import_products_path, class: "btn" %>
+    <%= link_to new_product_path, class: "btn-primary" do %><%= icon "plus", class: "size-4" %> Add product<% end %>
+  <% end %>
+<% end %>
+<%= form_with url: products_path, method: :get, class: "card mb-4 flex flex-wrap items-end gap-3 p-3" do |f| %>
+  <div class="min-w-56 flex-1"><label class="label">Search</label><%= f.search_field :q, value: params[:q], class: "input", placeholder: "Name, SKU, model, alias" %></div>
+  <div><label class="label">Brand</label><%= f.select :brand_id, Brand.all.map { [_1.name, _1.id] }, { include_blank: "All", selected: params[:brand_id] }, class: "input" %></div>
+  <%= f.submit "Filter", class: "btn" %>
+<% end %>
+<div class="card overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Product</th><th>SKU</th><th>HSN</th><th class="num">GST</th><th class="num">MRP</th><th class="num">Wholesale</th><% if can?(:margins) %><th class="num">Cost</th><th class="num">Margin</th><% end %><th class="num">Stock</th><th class="num">Reorder at</th></tr></thead>
+    <tbody>
+      <% @products.each do |p| %>
+        <% low = p.reorder_level.positive? && p.stock_qty.to_i <= p.reorder_level %>
+        <tr><td><%= link_to p.display_name, p, class: "font-medium hover:underline" %></td><td class="text-slate-500 tnum"><%= p.sku %></td><td class="text-slate-500 tnum"><%= p.hsn %></td>
+          <td class="num"><%= p.gst_rate.to_f %>%</td><td class="num"><%= inr0 p.mrp_paise %></td><td class="num"><%= inr p.wholesale_paise %></td>
+          <% if can?(:margins) %><td class="num text-slate-500"><%= inr p.purchase_paise %></td><td class="num text-slate-500"><%= p.wholesale_paise.positive? ? "#{(p.margin_paise * 100.0 / p.wholesale_paise).round(1)}%" : "—" %></td><% end %>
+          <td class="num font-medium <%= p.stock_qty.to_i <= 0 ? 'text-rose-600' : low ? 'text-amber-700' : '' %>"><%= p.stock_qty %></td><td class="num text-slate-500"><%= p.reorder_level %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

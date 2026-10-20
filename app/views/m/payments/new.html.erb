@@ -1,0 +1,19 @@
+<% content_for :title, "Record payment" %>
+<% content_for :subtitle, @customer.shop_name %>
+<% content_for :back, m_customer_path(@customer) %>
+<%= form_with url: m_payments_path, class: "space-y-3", data: { controller: "outbox-form", outbox_form_kind_value: "payment", outbox_form_back_value: m_customer_path(@customer), action: "submit->outbox-form#submit" } do |f| %>
+  <%= f.hidden_field :customer_id, value: @customer.id %>
+  <%= f.hidden_field :client_uuid, value: SecureRandom.uuid, data: { outbox_form_target: "uuid" } %>
+  <div class="rounded-2xl bg-white p-4 shadow-xs ring-1 ring-slate-200">
+    <div class="text-xs text-slate-500">Due <span class="tnum font-medium text-slate-800"><%= inr0 @customer.balance_paise %></span></div>
+    <label class="mt-3 block text-xs font-medium text-slate-600">Amount received ₹</label>
+    <%= f.number_field :amount, step: "0.01", min: "1", inputmode: "decimal", required: true, autofocus: true, class: "mt-1 w-full border-0 border-b-2 border-slate-200 px-0 py-2 text-4xl font-semibold tnum focus:border-brand-600 focus:ring-0" %>
+  </div>
+  <div class="grid grid-cols-3 gap-2">
+    <% [["cash", "Cash"], ["upi", "UPI"], ["cheque", "Cheque"]].each_with_index do |(v, l), i| %>
+      <label class="cursor-pointer rounded-2xl bg-white py-4 text-center text-sm font-semibold ring-1 ring-slate-200 has-[:checked]:bg-emerald-600 has-[:checked]:text-white has-[:checked]:ring-emerald-600"><%= radio_button_tag :mode, v, i.zero?, class: "sr-only" %><%= l %></label>
+    <% end %>
+  </div>
+  <%= f.text_field :reference, class: "input-lg", placeholder: "UTR / cheque no." %>
+  <%= f.button class: "btn-success btn-lg w-full py-4" do %><%= icon "check", class: "size-5" %> Record & send receipt<% end %>
+<% end %>

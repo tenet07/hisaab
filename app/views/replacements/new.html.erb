@@ -1,0 +1,25 @@
+<% content_for :title, "Replacement" %>
+<%= catalog_script "product-catalog", product_catalog_json %>
+<%= catalog_script "customer-catalog", customer_catalog_json %>
+<div class="mx-auto max-w-2xl">
+<%= page_header "Replacement intake", "Warranty is checked from the invoice that sold the piece." %>
+<%= form_with url: replacements_path, class: "card-pad space-y-4", data: { controller: "warranty" } do |f| %>
+  <%= f.hidden_field :client_uuid, value: SecureRandom.uuid %>
+  <%= hidden_field_tag :invoice_id, nil, data: { warranty_target: "invoice" } %>
+  <div class="field"><label class="label">Customer</label><%= combobox name: "customer_id", value: @customer&.id, label: @customer&.shop_name, source: "customer-catalog", autofocus: @customer.nil?, extra_action: "combobox:picked->warranty#check" %></div>
+  <div class="field"><label class="label">Defective item</label><%= combobox name: "product_id", source: "product-catalog", placeholder: "Product brought back", extra_action: "combobox:picked->warranty#check" %></div>
+  <div data-warranty-target="result" class="hidden rounded-xl border p-4 text-sm"></div>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div class="field"><label class="label">Defect</label><%= f.select :defect, ["Not glowing", "Flickering", "Burnt driver", "Body broken", "Humming / noise", "Not running", "Other"], {}, class: "input" %></div>
+    <div class="field"><label class="label">Serial / batch (if printed)</label><%= f.text_field :serial_no, class: "input" %></div>
+  </div>
+  <div class="field"><span class="label">What did you do?</span>
+    <div class="grid gap-2 sm:grid-cols-3">
+      <% Replacement::OUTCOMES.each_with_index do |(k, v), i| %>
+        <label class="card flex cursor-pointer flex-col gap-1 p-3 text-sm has-[:checked]:border-brand-500 has-[:checked]:ring-2 has-[:checked]:ring-brand-500/20"><span class="flex items-center gap-2 font-medium"><%= radio_button_tag :outcome, k, i.zero?, data: { warranty_target: "outcome" } %> <%= k.humanize %></span><span class="text-xs text-slate-500"><%= v %></span></label>
+      <% end %>
+    </div></div>
+  <% if Current.user.owner? %><label class="flex items-center gap-2 text-sm text-slate-600"><%= check_box_tag :goodwill, "1" %> Goodwill swap even though out of warranty (owner)</label><% end %>
+  <%= f.button class: "btn-primary btn-lg w-full" do %><%= icon "swap", class: "size-5" %> Log replacement<% end %>
+<% end %>
+</div>

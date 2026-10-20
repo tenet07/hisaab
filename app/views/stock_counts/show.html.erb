@@ -1,0 +1,19 @@
+<% content_for :title, "Count #{d @count.count_date}" %>
+<%= page_header "Count of #{d @count.count_date}", "by #{@count.counted_by&.name}" do %>
+  <%= status_badge @count.status %>
+  <% if !@count.posted? %><%= button_to "Post adjustments", post_count_stock_count_path(@count), class: "btn-success", form: { data: { turbo_confirm: "Post #{@count.variance_lines.size} adjustments to the stock ledger?" } } %><% end %>
+<% end %>
+<%= form_with url: stock_count_path(@count), method: :patch, class: "card overflow-x-auto" do |f| %>
+  <table class="table">
+    <thead><tr><th>Product</th><th class="num">System</th><th class="!text-right">Counted</th><th class="num">Difference</th><th>Reason (needed for any difference)</th></tr></thead>
+    <tbody>
+      <% @lines.each do |l| %>
+        <tr><td><%= l.product.display_name %> <span class="text-xs text-slate-400"><%= l.product.sku %></span></td><td class="num"><%= l.system_qty %></td>
+          <td class="w-28"><%= number_field_tag "lines[#{l.id}][counted_qty]", l.counted_qty, class: "input text-right", disabled: @count.posted? %></td>
+          <td class="num font-medium <%= l.variance.negative? ? 'text-rose-600' : l.variance.positive? ? 'text-emerald-700' : 'text-slate-300' %>"><%= l.counted_qty ? (l.variance.positive? ? "+#{l.variance}" : l.variance) : "" %></td>
+          <td><%= select_tag "lines[#{l.id}][reason]", options_for_select([["", ""], "Breakage", "Theft / missing", "Billing error", "Unbilled sample", "Found extra", "Wrong item received"], l.reason), class: "input", disabled: @count.posted? %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% unless @count.posted? %><div class="flex justify-end border-t border-slate-100 p-3"><%= f.submit "Save counts", class: "btn" %></div><% end %>
+<% end %>

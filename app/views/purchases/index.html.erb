@@ -1,0 +1,16 @@
+<% content_for :title, "Purchases" %>
+<%= page_header "Purchases", "Supplier bills bring stock in and credit the supplier." do %>
+  <%= link_to "Add supplier", new_supplier_path, class: "btn" %>
+  <%= link_to new_purchase_path, class: "btn-primary" do %><%= icon "plus", class: "size-4" %> Enter purchase bill<% end %>
+<% end %>
+<div class="grid gap-5 xl:grid-cols-[1fr_340px]">
+  <div class="card overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Bill</th><th>Date</th><th>Supplier</th><th class="num">Pieces</th><th class="num">Total</th></tr></thead>
+      <tbody><% @purchases.each do |p| %><tr><td><%= link_to p.bill_no, p, class: "font-medium text-brand-700 hover:underline" %></td><td class="text-slate-500"><%= d p.bill_date %></td><td><%= p.supplier.name %></td><td class="num"><%= p.lines.sum(:quantity) %></td><td class="num"><%= inr p.total_paise %></td></tr><% end %></tbody>
+    </table>
+    <% if @purchases.empty? %><%= empty_state "No purchases yet." %><% end %>
+  </div>
+  <div class="card h-fit"><div class="card-head"><h2 class="card-title">Suppliers · payable</h2></div>
+    <ul class="divide-y divide-slate-100 text-sm"><% @suppliers.each do |s| %><li class="flex justify-between px-5 py-2.5"><%= link_to s.name, s, class: "hover:underline" %><span class="tnum font-medium"><%= inr0 s.payable_paise %></span></li><% end %></ul></div>
+</div>

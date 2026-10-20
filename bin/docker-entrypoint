@@ -1,0 +1,6 @@
+#!/bin/bash -e
+# Prepare the database (runs migrations, keeps the append-only triggers) before starting the server.
+if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ] || [ "$1" == "./bin/rails" ] && [ "$2" == "server" ]; then
+  ./bin/rails db:prepare
+fi
+exec "${@}"

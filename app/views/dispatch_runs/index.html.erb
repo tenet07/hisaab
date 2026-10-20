@@ -1,0 +1,31 @@
+<% content_for :title, "Dispatch" %>
+<%= page_header "Dispatch · #{@date.strftime('%A %d %b')}", "Routes by market. Only billed invoices can be loaded." do %>
+  <%= link_to "← Prev", dispatch_runs_path(date: @date - 1), class: "btn" %>
+  <%= link_to "Today", dispatch_runs_path, class: "btn" %>
+  <%= link_to "Next →", dispatch_runs_path(date: @date + 1), class: "btn" %>
+<% end %>
+<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+  <% @markets.sort_by { [_1.delivery_weekday == @date.wday ? 0 : 1, _1.position] }.each do |m| %>
+    <% run = @runs[m.id]; pending = @pending[m.id] || [] %>
+    <div class="card flex flex-col <%= 'ring-2 ring-brand-500/30' if m.delivery_weekday == @date.wday %>">
+      <div class="card-head"><div><div class="card-title"><%= m.name %></div><div class="text-xs text-slate-500"><%= m.delivery_day %>s<%= " · route day" if m.delivery_weekday == @date.wday %></div></div>
+        <%= run ? status_badge(run.status) : tag.span("No run", class: "badge-gray") %></div>
+      <div class="flex-1 space-y-2 p-5 text-sm">
+        <% if run %>
+          <% done, total = run.progress %>
+          <div class="flex justify-between"><span class="text-slate-500">Drops</span><span class="tnum"><%= done %>/<%= total %></span></div>
+          <div class="h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full bg-emerald-500" style="width: <%= total.zero? ? 0 : done * 100 / total %>%"></div></div>
+          <div class="flex justify-between"><span class="text-slate-500">Value</span><span class="tnum"><%= inr0 run.deliveries.sum { _1.invoice.total_paise } %></span></div>
+          <div class="flex justify-between"><span class="text-slate-500">Driver</span><span><%= run.delivery_person&.name || "—" %></span></div>
+        <% end %>
+        <div class="flex justify-between"><span class="text-slate-500">Bills not yet loaded</span><span class="tnum <%= 'font-medium text-amber-700' if pending.any? %>"><%= pending.size %></span></div>
+      </div>
+      <div class="flex gap-2 border-t border-slate-100 p-3">
+        <% if run %><%= link_to "Open route", run, class: "btn-primary flex-1" %>
+        <% else %>
+          <%= button_to "Plan run", dispatch_runs_path(market_id: m.id, date: @date, auto: 1), class: "btn-primary w-full", form: { class: "flex-1" } %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

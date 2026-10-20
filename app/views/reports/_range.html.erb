@@ -1,0 +1,10 @@
+<%= form_with url: request.path, method: :get, class: "card mb-4 flex flex-wrap items-end gap-3 p-3" do |f| %>
+  <% if local_assigns[:month] %>
+    <div><label class="label">Month</label><%= f.month_field :month, value: @month.strftime("%Y-%m"), class: "input" %></div>
+  <% else %>
+    <div><label class="label">From</label><%= f.date_field :from, value: @from, class: "input" %></div>
+    <div><label class="label">To</label><%= f.date_field :to, value: @to, class: "input" %></div>
+  <% end %>
+  <%= f.submit "Show", class: "btn" %>
+  <%= yield if block_given? %>
+<% end %>

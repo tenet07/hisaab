@@ -1,0 +1,18 @@
+<% content_for :title, @supplier.name %>
+<%= page_header @supplier.name, [@supplier.brand&.name, @supplier.gstin, @supplier.phone].compact.join(" · ") do %>
+  <%= link_to "Edit", edit_supplier_path(@supplier), class: "btn" %><%= link_to "Enter bill", new_purchase_path(supplier_id: @supplier.id), class: "btn-primary" %>
+<% end %>
+<div class="grid gap-5 lg:grid-cols-[1fr_320px]">
+  <div class="card overflow-x-auto">
+    <table class="table"><thead><tr><th>Date</th><th>Particulars</th><th class="num">Paid / credit</th><th class="num">Bill</th><th class="num">Payable</th></tr></thead>
+      <tbody><% bal = 0 %><% @entries.each do |e| %><% bal += e.credit_paise - e.debit_paise %><tr><td class="text-slate-500"><%= d e.entry_date %></td><td><%= e.narration %></td><td class="num"><%= inr e.debit_paise if e.debit_paise.positive? %></td><td class="num"><%= inr e.credit_paise if e.credit_paise.positive? %></td><td class="num font-medium"><%= inr bal %></td></tr><% end %></tbody></table>
+  </div>
+  <%= form_with url: supplier_supplier_payments_path(@supplier), class: "card-pad h-fit space-y-3" do |f| %>
+    <div class="card-title">Pay supplier</div>
+    <%= f.number_field :amount, step: "0.01", class: "input", placeholder: "Amount ₹", required: true %>
+    <%= f.select :mode, [["Bank transfer", "bank"], ["Cheque", "cheque"], ["UPI", "upi"], ["Cash", "cash"]], {}, class: "input" %>
+    <%= f.text_field :reference, class: "input", placeholder: "UTR / cheque no." %>
+    <%= f.date_field :paid_on, value: Date.current, class: "input" %>
+    <%= f.submit "Record payment", class: "btn-primary w-full" %>
+  <% end %>
+</div>

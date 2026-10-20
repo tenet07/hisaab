@@ -1,0 +1,30 @@
+<% content_for :title, @replacement.number %>
+<% r = @replacement %>
+<%= page_header "Replacement #{r.number}", "#{r.customer.shop_name} · #{r.product.display_name} · #{dt r.created_at}" do %><%= status_badge r.claim_status %><% end %>
+<div class="grid gap-5 lg:grid-cols-[1fr_320px]">
+  <div class="space-y-4">
+    <div class="card-pad grid gap-4 text-sm sm:grid-cols-3">
+      <div><div class="label">Sold on</div><%= r.invoice ? link_to("#{d r.sold_on} · #{r.invoice.number}", r.invoice, class: "link") : "No invoice found" %></div>
+      <div><div class="label">Warranty until</div><%= d(r.warranty_until) || "—" %> <%= r.warranty_valid ? tag.span("valid", class: "badge-green") : tag.span("expired", class: "badge-red") %></div>
+      <div><div class="label">Outcome</div><%= Replacement::OUTCOMES[r.outcome] %></div>
+      <div><div class="label">Defect</div><%= r.defect %></div><div><div class="label">Serial</div><%= r.serial_no.presence || "—" %></div>
+      <div><div class="label">Logged by</div><%= r.logged_by&.name %> (<%= r.channel %>)</div>
+    </div>
+    <div class="card"><div class="card-head"><h2 class="card-title">Journey of the defective piece</h2></div>
+      <ol class="space-y-3 p-5 text-sm">
+        <% (r.stock_movements.to_a + StockMovement.where(document: r.brand_claim, product: r.product).where("quantity > 0").to_a).sort_by(&:created_at).select { _1.quantity.positive? && _1.bucket != "sellable" || _1.reason == "claim_replaced" }.each do |m| %>
+          <li class="flex items-start gap-3"><span class="mt-1 size-2 rounded-full bg-brand-500"></span><div><%= bucket_badge m.bucket %> <span class="text-slate-600"><%= m.reason.humanize %></span><div class="text-xs text-slate-400"><%= dt m.created_at %> · <%= m.user&.name %></div></div></li>
+        <% end %>
+      </ol></div>
+  </div>
+  <div class="space-y-4">
+    <% if r.brand_claim %><div class="card-pad text-sm"><div class="label">Brand claim</div><%= link_to r.brand_claim.number, r.brand_claim, class: "link" %> · <%= status_badge r.brand_claim.status %><% if r.credited_paise.positive? %><div class="mt-1">Credited <%= inr r.credited_paise %></div><% end %></div><% end %>
+    <% if %w[awaiting rejected].include?(r.claim_status) && !Current.user.read_only? && can?(:claims) %>
+      <%= form_with url: write_off_replacement_path(r), class: "card-pad space-y-2" do |f| %>
+        <div class="card-title">Can't be claimed?</div>
+        <%= f.text_field :reason, class: "input", placeholder: "Why (brand rejected, physical damage…)" %>
+        <%= f.submit "Ask owner to write off", class: "btn-danger w-full" %>
+      <% end %>
+    <% end %>
+  </div>
+</div>

@@ -1,0 +1,12 @@
+<% content_for :title, "Warranty check" %>
+<%= catalog_script "product-catalog", product_catalog_json %>
+<%= catalog_script "customer-catalog", customer_catalog_json %>
+<div class="mx-auto max-w-xl">
+  <%= page_header "Warranty check", "Find the invoice and the warranty end date in two taps." %>
+  <div class="card-pad space-y-4" data-controller="warranty">
+    <%= hidden_field_tag :invoice_id, nil, data: { warranty_target: "invoice" } %>
+    <div class="field"><label class="label">Customer</label><%= combobox name: "customer_id", source: "customer-catalog", autofocus: true, extra_action: "combobox:picked->warranty#check" %></div>
+    <div class="field"><label class="label">Product</label><%= combobox name: "product_id", source: "product-catalog", extra_action: "combobox:picked->warranty#check" %></div>
+    <div data-warranty-target="result" class="hidden rounded-xl border p-4 text-sm"></div>
+  </div>
+</div>

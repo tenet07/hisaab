@@ -1,0 +1,14 @@
+<% content_for :title, "New broadcast" %>
+<%= page_header "New broadcast" %>
+<div class="grid gap-5 lg:grid-cols-[1fr_340px]">
+  <%= form_with model: @broadcast, url: whatsapp_broadcasts_path, class: "card-pad space-y-4" do |f| %>
+    <div class="field"><%= f.label :title, class: "label" %><%= f.text_field :title, class: "input", placeholder: "Diwali stock: Philips & Havells decorative lights", required: true %></div>
+    <div class="field"><%= f.label :body, "Message", class: "label" %><%= f.text_area :body, rows: 6, class: "input", required: true, maxlength: 1000, placeholder: "Fresh stock arrived…" %></div>
+    <div class="field"><span class="label">Markets (none = all)</span>
+      <div class="flex flex-wrap gap-2"><% Market.all.each do |m| %><label class="btn cursor-pointer has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50"><%= check_box_tag "broadcast[market_ids][]", m.id, false, class: "sr-only" %><%= m.name %></label><% end %></div></div>
+    <p class="hint">Only customers with “marketing opt-in” receive it (<%= Customer.active.where(marketing_opt_in: true).count %> today). Replying STOP opts them out.</p>
+    <%= f.submit "Save and preview", class: "btn-primary" %>
+  <% end %>
+  <div class="card-pad bg-[#efeae2]"><div class="label">Preview</div>
+    <div class="mt-2 rounded-lg rounded-tr-none bg-[#d9fdd3] px-3 py-2 text-sm shadow-xs"><b>Your title</b><br>Your message appears here, with a “Reply STOP to opt out” footer.</div></div>
+</div>

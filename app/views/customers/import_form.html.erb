@@ -1,0 +1,8 @@
+<% content_for :title, "Import customers" %>
+<%= page_header "Import customers", "Move your customer list and opening balances in from Tally, Vyapar or a spreadsheet." %>
+<%= form_with url: import_customers_path, multipart: true, class: "card-pad max-w-2xl space-y-4" do |f| %>
+  <div class="rounded-lg bg-slate-50 p-3 font-mono text-xs text-slate-600">shop_name, owner_name, phone, gstin, market, address, credit_limit, price_tier, opening_balance, marketing_opt_in</div>
+  <%= f.file_field :file, accept: ".csv", required: true, class: "input" %>
+  <label class="flex items-center gap-2 text-sm"><%= check_box_tag :all_or_nothing, "1", true %> Import nothing if any row has an error</label>
+  <%= f.submit "Import", class: "btn-primary" %>
+<% end %>

@@ -1,0 +1,24 @@
+<% content_for :title, "New order" %>
+<% content_for :subtitle, @customer.shop_name %>
+<% content_for :back, m_customer_path(@customer) %>
+<%= catalog_script "product-catalog", product_catalog_json %>
+<%= form_with url: m_orders_path, class: "space-y-3", data: { controller: "lines outbox-form", outbox_form_kind_value: "order", outbox_form_back_value: m_customer_path(@customer), lines_tier_value: @customer.price_tier, action: "submit->outbox-form#submit" } do |f| %>
+  <%= f.hidden_field :customer_id, value: @customer.id %>
+  <%= f.hidden_field :client_uuid, value: SecureRandom.uuid, data: { outbox_form_target: "uuid" } %>
+  <div class="overflow-hidden rounded-2xl bg-white shadow-xs ring-1 ring-slate-200">
+    <table class="w-full text-sm"><tbody data-lines-target="body"></tbody></table>
+    <template data-lines-target="template">
+      <tr class="border-b border-slate-100 align-top">
+        <td class="p-2"><%= combobox name: "lines[NEW_LINE][product_id]", source: "product-catalog", placeholder: "Item, size, brand…", extra_action: "combobox:picked->lines#picked", input_class: "input-lg" %>
+          <div class="mt-1 text-[11px] text-slate-400">Stock <span data-field="stock">–</span></div></td>
+        <td class="w-24 p-2"><%= number_field_tag "lines[NEW_LINE][quantity]", nil, min: 1, inputmode: "numeric", class: "input-lg text-center tnum", id: nil, placeholder: "Qty", data: { field: "qty", action: "keydown->lines#qtyKey input->lines#recalc" } %>
+          <input type="hidden" data-field="rate"></td>
+        <td class="w-10 p-2 pt-4"><button type="button" class="text-slate-400" data-action="lines#remove"><%= icon "x", class: "size-5" %></button></td>
+      </tr>
+    </template>
+    <button type="button" class="flex w-full items-center justify-center gap-2 py-3 text-sm font-medium text-brand-700" data-action="lines#add"><%= icon "plus", class: "size-4" %> Add item</button>
+  </div>
+  <%= f.text_area :notes, rows: 2, class: "input-lg", placeholder: "Notes for the office (optional)" %>
+  <p class="px-1 text-xs text-slate-500">Prices come from the customer's rate list; the office bills it. <span data-lines-target="count">0</span> items.</p>
+  <%= f.button class: "btn-primary btn-lg w-full py-4" do %><%= icon "check", class: "size-5" %> Send order<% end %>
+<% end %>

@@ -1,0 +1,15 @@
+<div data-palette-target="dialog" hidden class="no-print fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 p-4 pt-[12vh] backdrop-blur-[2px]" data-action="click->palette#backdrop">
+  <div class="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+    <div class="flex items-center gap-3 border-b border-slate-100 px-4">
+      <%= icon "search", class: "size-5 text-slate-400" %>
+      <input data-palette-target="input" data-action="input->palette#search keydown->palette#nav" type="text" autocomplete="off"
+             placeholder="Customers, invoices, products, or a command…" class="w-full border-0 py-3.5 text-[15px] focus:ring-0 focus:outline-none">
+      <span class="kbd">esc</span>
+    </div>
+    <ul data-palette-target="results" class="max-h-[50vh] overflow-y-auto p-2"></ul>
+    <div class="flex gap-4 border-t border-slate-100 bg-slate-50 px-4 py-2 text-[11px] text-slate-500">
+      <span><span class="kbd">↑↓</span> move</span><span><span class="kbd">↵</span> open</span>
+      <span class="ml-auto">Shortcuts: <span class="kbd">B</span> counter bill · <span class="kbd">P</span> payment · <span class="kbd">O</span> orders</span>
+    </div>
+  </div>
+</div>

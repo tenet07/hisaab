@@ -1,0 +1,29 @@
+<% content_for :title, @payment.number %>
+<% p = @payment %>
+<%= page_header "Receipt #{p.number}", "#{p.customer.shop_name} · #{d p.received_on}" do %>
+  <% if p.bounced? %><span class="badge-red">Bounced</span><% end %>
+  <%= button_to send_receipt_payment_path(p), class: "btn" do %><%= icon "whatsapp", class: "size-4 text-[#25d366]" %> Send receipt<% end %>
+<% end %>
+<div class="grid gap-5 lg:grid-cols-[1fr_320px]">
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">Applied to</h2><span class="text-sm tnum"><%= inr p.amount_paise %> · <%= p.mode_label %></span></div>
+    <table class="table"><thead><tr><th>Invoice</th><th>Date</th><th class="num">Applied</th></tr></thead>
+      <tbody><% p.allocations.includes(:invoice).each do |a| %><tr><td><%= link_to a.invoice.number, a.invoice, class: "link" %></td><td class="text-slate-500"><%= d a.invoice.invoice_date %></td><td class="num"><%= inr a.amount_paise %></td></tr><% end %></tbody></table>
+    <% if p.unallocated_paise.positive? %><div class="border-t border-slate-100 px-5 py-3 text-sm text-emerald-700"><%= inr p.unallocated_paise %> kept as advance — applied automatically to the next bill.</div><% end %>
+  </div>
+  <div class="space-y-4">
+    <div class="card-pad space-y-1 text-sm">
+      <div class="flex justify-between"><span class="text-slate-500">Reference</span><span><%= p.reference || "—" %></span></div>
+      <div class="flex justify-between"><span class="text-slate-500">Collected by</span><span><%= p.collected_by&.name %></span></div>
+      <div class="flex justify-between"><span class="text-slate-500">Recorded</span><span><%= dt p.created_at %></span></div>
+      <% if p.notes.present? %><div class="pt-2 text-slate-600 whitespace-pre-line"><%= p.notes %></div><% end %>
+    </div>
+    <% if !p.bounced? && p.mode == "cheque" && can?(:payments_bounce) %>
+      <%= form_with url: bounce_payment_path(p), class: "card-pad space-y-2", data: { turbo_confirm: "Mark this cheque as bounced? The customer is debited back." } do |f| %>
+        <div class="card-title">Cheque bounced?</div>
+        <%= f.text_field :reason, class: "input", placeholder: "Bank's reason" %>
+        <%= f.submit "Mark bounced", class: "btn-danger w-full" %>
+      <% end %>
+    <% end %>
+  </div>
+</div>

@@ -1,0 +1,17 @@
+<% content_for :title, "GSTR-3B" %>
+<%= page_header "GSTR-3B · #{@month.strftime('%B %Y')}", "Summary to file; check ITC against GSTR-2B before filing." %>
+<%= render "range", month: true %>
+<% o = @r.outward; i = @r.itc; p = @r.payable %>
+<div class="grid gap-5 lg:grid-cols-2">
+  <div class="card overflow-x-auto"><div class="card-head"><h2 class="card-title">3.1 (a) Outward taxable supplies (net of credit notes)</h2></div>
+    <table class="table"><thead><tr><th>Taxable value</th><th class="num">IGST</th><th class="num">CGST</th><th class="num">SGST</th></tr></thead>
+      <tbody><tr><td class="tnum"><%= inr o[:taxable] %></td><td class="num"><%= inr o[:igst] %></td><td class="num"><%= inr o[:cgst] %></td><td class="num"><%= inr o[:sgst] %></td></tr></tbody></table></div>
+  <div class="card overflow-x-auto"><div class="card-head"><h2 class="card-title">4 (A)(5) Eligible ITC — all other</h2></div>
+    <table class="table"><thead><tr><th></th><th class="num">IGST</th><th class="num">CGST</th><th class="num">SGST</th></tr></thead>
+      <tbody><tr><td>From purchase bills</td><td class="num"><%= inr i[:igst] %></td><td class="num"><%= inr i[:cgst] %></td><td class="num"><%= inr i[:sgst] %></td></tr></tbody></table></div>
+  <div class="card overflow-x-auto"><div class="card-head"><h2 class="card-title">3.2 Inter-state supplies to unregistered persons</h2></div>
+    <table class="table"><thead><tr><th>Place of supply</th><th class="num">Taxable</th><th class="num">IGST</th></tr></thead>
+      <tbody><% @r.interstate_unregistered.each do |x| %><tr><td><%= x[:pos] %>-<%= GstStates::NAMES[x[:pos]] %></td><td class="num"><%= inr x[:taxable] %></td><td class="num"><%= inr x[:igst] %></td></tr><% end %></tbody></table></div>
+  <div class="card-pad"><div class="card-title mb-3">Net tax payable in cash (before cross-utilisation)</div>
+    <% p.each do |k, v| %><div class="flex justify-between py-1 text-sm"><span class="text-slate-500"><%= k.upcase %></span><span class="tnum font-medium"><%= inr v %></span></div><% end %></div>
+</div>

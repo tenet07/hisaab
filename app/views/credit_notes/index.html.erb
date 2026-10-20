@@ -1,0 +1,14 @@
+<% content_for :title, "Credit notes" %>
+<%= page_header "Credit notes", "Shortfalls, returns, rate differences — each against its invoice." %>
+<div class="card overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Number</th><th>Date</th><th>Customer</th><th>Invoice</th><th>Reason</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      <% @credit_notes.each do |cn| %>
+        <tr><td><%= link_to cn.number, cn, class: "font-medium text-brand-700 hover:underline" %></td><td class="text-slate-500"><%= d cn.note_date %></td>
+          <td><%= cn.customer.shop_name %></td><td><%= link_to cn.invoice.number, cn.invoice, class: "link" %></td><td><span class="badge-gray"><%= cn.reason_label %></span></td><td class="num"><%= inr cn.total_paise %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% if @credit_notes.empty? %><%= empty_state "No credit notes yet." %><% end %>
+</div>

@@ -1,0 +1,21 @@
+<% content_for :title, "GSTR-1" %>
+<% t = @r.totals %>
+<%= page_header "GSTR-1 · #{@month.strftime('%B %Y')}", "GSTIN #{shop.gstin || '— set it in Settings'}" do %>
+  <%= link_to "Portal JSON", gstr1_report_path(format: :json, month: @month.strftime("%Y-%m")), class: "btn-primary" %>
+<% end %>
+<%= render "range", month: true %>
+<div class="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
+  <%= stat_tile "Invoices", t[:count] %><%= stat_tile "Taxable", inr0(t[:taxable]) %><%= stat_tile "IGST", inr0(t[:igst]) %><%= stat_tile "CGST + SGST", inr0(t[:cgst] + t[:sgst]) %><%= stat_tile "Credit notes", inr0(t[:cn]) %>
+</div>
+<div class="card overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Table</th><th class="num">Rows</th><th></th></tr></thead>
+    <tbody>
+      <% { "b2b" => ["4A · B2B invoices", @r.b2b.size], "b2cl" => ["5A · B2C large (inter-state > ₹1L)", @r.b2cl.size], "b2cs" => ["7 · B2C small (rate/state-wise)", @r.b2cs.size],
+           "cdnr" => ["9B · Credit notes (registered)", @r.cdnr.size], "hsn" => ["12 · HSN summary", @r.hsn.size], "docs" => ["13 · Documents issued", @r.docs.size] }.each do |k, (label, n)| %>
+        <tr><td class="font-medium"><%= label %></td><td class="num"><%= n %></td><td class="text-right"><%= link_to "Download CSV", gstr1_report_path(format: :csv, table: k, month: @month.strftime("%Y-%m")), class: "btn-sm btn" %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+<% if @r.cdnur.any? %><p class="mt-3 text-sm text-amber-700"><%= @r.cdnur.size %> credit notes are on B2C invoices — report them under CDNUR if any original was B2CL.</p><% end %>

@@ -1,0 +1,80 @@
+<% content_for :title, @invoice.number %>
+<% inv = @invoice %>
+<div class="mb-2 no-print"><%= link_to "← Invoices", invoices_path, class: "text-sm text-slate-500 hover:text-slate-800" %></div>
+<%= page_header inv.number, "#{inv.bill_to_name} · #{d inv.invoice_date}" do %>
+  <%= status_badge inv.payment_state %>
+  <%= link_to invoice_path(inv, format: :pdf), class: "btn", target: "_blank" do %><%= icon "printer", class: "size-4" %> PDF<% end %>
+  <% if inv.posted? && can?(:invoice_post) %>
+    <%= button_to send_whatsapp_invoice_path(inv), class: "btn" do %><%= icon "whatsapp", class: "size-4 text-[#25d366]" %> Send<% end %>
+  <% end %>
+  <% if inv.posted? && can?(:credit_notes) && !Current.user.read_only? %><%= link_to "Credit note", new_invoice_credit_note_path(inv), class: "btn" %><% end %>
+  <% if inv.unpaid? && can?(:payments) && !Current.user.read_only? %><%= link_to new_payment_path(customer_id: inv.customer_id, amount: inv.outstanding_paise / 100.0), class: "btn-primary" do %><%= icon "rupee", class: "size-4" %> Record payment<% end %><% end %>
+<% end %>
+
+<% if inv.cancelled? %><div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">Cancelled <%= dt inv.cancelled_at %> by <%= inv.cancelled_by&.name %>: <%= inv.cancel_reason %>. Stock and ledger were reversed.</div><% end %>
+<% if inv.eway_required && inv.eway_bill_no.blank? && inv.posted? %>
+  <div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+    <%= icon "alert", class: "size-4" %> Consignment over <%= inr0 shop.eway_threshold_paise %>: an e-way bill is needed before dispatch.
+    <% if can?(:invoice_cancel) %><%= form_with url: eway_invoice_path(inv), method: :patch, class: "ml-auto flex gap-2" do |f| %><%= f.text_field :eway_bill_no, class: "input w-48", placeholder: "E-way bill no." %><%= f.submit "Save", class: "btn" %><% end %><% end %>
+  </div>
+<% end %>
+
+<div class="grid gap-5 xl:grid-cols-[1fr_320px]">
+  <div class="card overflow-hidden">
+    <div class="grid gap-4 border-b border-slate-100 p-5 text-sm sm:grid-cols-3">
+      <div><div class="label">Bill to</div><div class="font-medium"><%= inv.bill_to_name %></div><div class="text-slate-500"><%= inv.bill_to_address %></div><% if inv.bill_to_gstin %><div class="text-slate-500">GSTIN <%= inv.bill_to_gstin %></div><% end %></div>
+      <div><div class="label">Place of supply</div><div><%= GstStates::NAMES[inv.place_of_supply] %> (<%= inv.place_of_supply %>)</div><div class="text-slate-500"><%= inv.igst_paise.positive? ? "Inter-state · IGST" : "Intra-state · CGST + SGST" %></div></div>
+      <div><div class="label">Due</div><div><%= d inv.due_date %></div><% if inv.order %><div class="text-slate-500">From <%= link_to inv.order.number, inv.order, class: "link" %></div><% end %><% if inv.eway_bill_no %><div class="text-slate-500">EWB <%= inv.eway_bill_no %></div><% end %></div>
+    </div>
+    <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Item</th><th>HSN</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Disc</th><th class="num">Taxable</th><th class="num">GST</th><th class="num">Amount</th></tr></thead>
+      <tbody>
+        <% inv.lines.each do |l| %>
+          <tr><td><%= l.description %></td><td class="text-slate-500 tnum"><%= l.hsn %></td><td class="num"><%= l.quantity %></td><td class="num"><%= inr l.rate_paise %></td>
+            <td class="num text-slate-500"><%= "#{l.discount_pct.to_f}%" if l.discount_pct.positive? %></td><td class="num"><%= inr l.taxable_paise %></td>
+            <td class="num text-slate-500"><%= l.gst_rate.to_f %>% · <%= inr l.tax_paise %></td><td class="num font-medium"><%= inr l.total_paise %></td></tr>
+        <% end %>
+      </tbody>
+    </table>
+    </div>
+    <div class="ml-auto max-w-xs space-y-1 border-t border-slate-100 p-5 text-sm">
+      <div class="flex justify-between"><span class="text-slate-500">Taxable</span><span class="tnum"><%= inr inv.taxable_paise %></span></div>
+      <% if inv.igst_paise.positive? %><div class="flex justify-between"><span class="text-slate-500">IGST</span><span class="tnum"><%= inr inv.igst_paise %></span></div>
+      <% else %><div class="flex justify-between"><span class="text-slate-500">CGST</span><span class="tnum"><%= inr inv.cgst_paise %></span></div><div class="flex justify-between"><span class="text-slate-500">SGST</span><span class="tnum"><%= inr inv.sgst_paise %></span></div><% end %>
+      <% unless inv.round_off_paise.zero? %><div class="flex justify-between"><span class="text-slate-500">Round off</span><span class="tnum"><%= inr inv.round_off_paise %></span></div><% end %>
+      <div class="flex justify-between border-t border-slate-200 pt-2 text-base font-semibold"><span>Total</span><span class="tnum"><%= inr inv.total_paise %></span></div>
+      <div class="text-right text-xs text-slate-500"><%= Money.in_words(inv.total_paise) %></div>
+    </div>
+  </div>
+
+  <div class="space-y-4">
+    <div class="card">
+      <div class="card-head"><h2 class="card-title">Money</h2></div>
+      <div class="space-y-1.5 p-5 text-sm">
+        <div class="flex justify-between"><span class="text-slate-500">Paid</span><span class="tnum"><%= inr inv.paid_paise %></span></div>
+        <div class="flex justify-between"><span class="text-slate-500">Credit notes</span><span class="tnum"><%= inr inv.credited_paise %></span></div>
+        <div class="flex justify-between font-semibold"><span>Outstanding</span><span class="tnum"><%= inr inv.outstanding_paise %></span></div>
+      </div>
+      <ul class="divide-y divide-slate-100 border-t border-slate-100 text-sm">
+        <% inv.payment_allocations.includes(:payment).each do |a| %><li class="flex justify-between px-5 py-2"><%= link_to a.payment.number, a.payment, class: "link" %><span class="tnum"><%= inr a.amount_paise %></span></li><% end %>
+        <% inv.credit_notes.each do |cn| %><li class="flex justify-between px-5 py-2"><%= link_to cn.number, cn, class: "link" %><span class="tnum text-slate-500"><%= cn.reason_label %> · <%= inr cn.total_paise %></span></li><% end %>
+      </ul>
+    </div>
+    <% if inv.delivery %>
+      <div class="card-pad text-sm"><div class="card-title mb-1">Delivery</div><%= status_badge inv.delivery.status %> <%= link_to inv.delivery.dispatch_run.market.name, inv.delivery.dispatch_run, class: "link" %> · <%= d inv.delivery.dispatch_run.run_date %>
+        <% if inv.delivery.delivered_at %><div class="mt-1 text-slate-500">Proof: <%= inv.delivery.proof %> · <%= dt inv.delivery.delivered_at %></div><% end %></div>
+    <% end %>
+    <div class="card-pad text-xs text-slate-500">Posted by <%= inv.posted_by&.name || "system" %> · <%= dt inv.created_at %><br>Stock out: <%= inv.stock_movements.where(reason: "sale").sum(:quantity).abs %> pcs</div>
+    <% if inv.posted? && can?(:invoice_cancel) %>
+      <details class="card-pad">
+        <summary class="cursor-pointer text-sm font-medium text-rose-700">Cancel invoice…</summary>
+        <%= form_with url: cancel_invoice_path(inv), class: "mt-3 space-y-2", data: { turbo_confirm: "Cancel #{inv.number}? This posts reversing entries." } do |f| %>
+          <%= f.text_field :reason, class: "input", placeholder: "Reason (required)", required: true %>
+          <%= f.submit "Cancel by reversal", class: "btn-danger w-full" %>
+          <p class="hint">The number stays used. Delivered bills need a return credit note instead.</p>
+        <% end %>
+      </details>
+    <% end %>
+  </div>
+</div>

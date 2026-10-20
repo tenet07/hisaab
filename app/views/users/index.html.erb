@@ -1,0 +1,17 @@
+<% content_for :title, "Users" %>
+<%= page_header "Settings" do %><%= link_to new_user_path, class: "btn-primary" do %><%= icon "plus", class: "size-4" %> Add user<% end %><% end %>
+<%= render "settings/nav" %>
+<div class="grid gap-5 xl:grid-cols-[1fr_380px]">
+  <div class="card overflow-x-auto">
+    <table class="table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Last device</th><th></th></tr></thead>
+      <tbody><% @users.each do |u| %><tr class="<%= 'opacity-50' unless u.active? %>"><td class="font-medium"><%= u.name %></td><td class="text-slate-500"><%= u.email_address %></td><td><span class="badge-gray"><%= u.role_label %></span></td>
+        <td class="text-xs text-slate-500"><%= u.sessions.order(:created_at).last&.then { "#{_1.device_label} · #{time_ago_in_words _1.created_at} ago" } %></td><td class="text-right"><%= link_to "Edit", edit_user_path(u), class: "btn-sm btn" %></td></tr><% end %></tbody></table>
+  </div>
+  <div class="card-pad text-sm"><div class="card-title mb-3">What each role can do</div>
+    <dl class="space-y-2.5">
+      <% { "Owner" => "Everything: dashboard, approvals, broadcasts, settings.", "Accounts" => "Desktop books. Can't delete — only reverse.", "Counter staff" => "Quick billing, replacements, stock lookup. No margins, no other customers' ledgers.",
+           "Salesman" => "Phone app: visits, orders, payments, replacements. Can't change prices or balances.", "Delivery" => "Phone app: today's route, photo/OTP proof, cash. No ledgers.", "CA" => "Read-only plus monthly exports." }.each do |r, t| %>
+        <div><dt class="font-medium"><%= r %></dt><dd class="text-slate-500"><%= t %></dd></div>
+      <% end %>
+    </dl></div>
+</div>

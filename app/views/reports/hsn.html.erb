@@ -1,0 +1,7 @@
+<% content_for :title, "HSN summary" %>
+<%= page_header "HSN summary · #{@month.strftime('%B %Y')}" do %><%= link_to "CSV", gstr1_report_path(format: :csv, table: "hsn", month: @month.strftime("%Y-%m")), class: "btn" %><% end %>
+<%= render "range", month: true %>
+<div class="card overflow-x-auto">
+  <table class="table"><thead><tr><th>HSN</th><th class="num">Rate</th><th class="num">Qty</th><th class="num">Taxable</th><th class="num">IGST</th><th class="num">CGST</th><th class="num">SGST</th><th class="num">Value</th></tr></thead>
+    <tbody><% @r.hsn.each do |h| %><tr><td class="tnum"><%= h[:hsn] %></td><td class="num"><%= h[:rate] %>%</td><td class="num"><%= h[:qty] %></td><td class="num"><%= inr h[:taxable] %></td><td class="num"><%= inr h[:igst] %></td><td class="num"><%= inr h[:cgst] %></td><td class="num"><%= inr h[:sgst] %></td><td class="num"><%= inr h[:value] %></td></tr><% end %></tbody></table>
+</div>

@@ -1,0 +1,13 @@
+<% content_for :title, "Day book" %>
+<%= page_header "Day book · #{d @date}" do %>
+  <%= link_to "←", day_book_path(date: @date - 1), class: "btn" %><%= link_to "→", day_book_path(date: @date + 1), class: "btn" %>
+<% end %>
+<div class="grid gap-5 xl:grid-cols-2">
+  <div class="card overflow-x-auto"><div class="card-head"><h2 class="card-title">Ledger entries</h2></div>
+    <table class="table"><thead><tr><th>Party</th><th>Entry</th><th>By · device</th><th class="num">Dr</th><th class="num">Cr</th></tr></thead>
+      <tbody><% @entries.each do |e| %><tr><td><%= e.party.try(:shop_name) || e.party.try(:name) %></td><td><%= e.narration %></td><td class="text-xs text-slate-500"><%= e.user&.name %> · <%= e.device %></td><td class="num"><%= inr e.debit_paise if e.debit_paise.positive? %></td><td class="num"><%= inr e.credit_paise if e.credit_paise.positive? %></td></tr><% end %></tbody>
+      <tfoot class="border-t font-semibold"><tr><td colspan="3" class="px-4 py-2">Total</td><td class="num px-4 py-2"><%= inr @entries.sum(&:debit_paise) %></td><td class="num px-4 py-2"><%= inr @entries.sum(&:credit_paise) %></td></tr></tfoot></table></div>
+  <div class="card overflow-x-auto"><div class="card-head"><h2 class="card-title">Stock movements</h2></div>
+    <table class="table"><thead><tr><th>Product</th><th>Bucket</th><th>Reason</th><th class="num">Qty</th></tr></thead>
+      <tbody><% @movements.each do |m| %><tr><td><%= m.product.display_name %></td><td><%= bucket_badge m.bucket %></td><td><%= m.reason.humanize %></td><td class="num"><%= m.quantity %></td></tr><% end %></tbody></table></div>
+</div>

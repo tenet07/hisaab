@@ -1,0 +1,28 @@
+<% content_for :title, "Brand claims" %>
+<%= page_header "Brand claims", "Batch defective pieces per brand, send with a challan, match the brand's credit note." %>
+<% if @awaiting.any? %>
+  <div class="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <% @awaiting.each do |brand, reps| %>
+      <div class="card-pad">
+        <div class="text-sm font-semibold"><%= brand.name %></div>
+        <div class="mt-1 text-2xl font-semibold tnum"><%= reps.size %> <span class="text-sm font-normal text-slate-500">pcs awaiting</span></div>
+        <div class="mt-0.5 text-xs text-slate-500">oldest <%= time_ago_in_words reps.map(&:created_at).min %> ago</div>
+        <%= link_to "Batch a claim →", new_brand_claim_path(brand_id: brand.id), class: "btn-primary mt-3 w-full" %>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+<div class="card overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Claim</th><th>Brand</th><th>Challan</th><th>Sent</th><th class="num">Pieces</th><th class="num">Still out</th><th class="num">Credited</th><th>Status</th></tr></thead>
+    <tbody>
+      <% @claims.each do |c| %>
+        <tr class="<%= 'bg-rose-50/60' if c.flagged? %>"><td><%= link_to c.number, c, class: "font-medium text-brand-700 hover:underline" %></td><td><%= c.brand.name %></td><td class="text-slate-500"><%= c.challan_no %></td>
+          <td class="text-slate-500"><%= d c.sent_on %><% if c.sent? %> <span class="text-xs <%= c.flagged? ? 'text-rose-600 font-medium' : '' %>">(<%= c.days_out %>d)</span><% end %></td>
+          <td class="num"><%= c.pieces %></td><td class="num"><%= c.open_pieces.size %></td><td class="num"><%= inr0 c.credited_paise %></td>
+          <td><%= c.flagged? ? tag.span("No response #{c.days_out}d", class: "badge-red") : status_badge(c.status) %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% if @claims.empty? %><%= empty_state "No claims yet." %><% end %>
+</div>

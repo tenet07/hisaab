@@ -1,0 +1,32 @@
+<% content_for :title, "Invoices" %>
+<%= page_header "Invoices", "GST invoices, numbered per financial year. Cancelled bills stay, reversed." do %>
+  <% if can?(:invoice_post) %><%= link_to new_invoice_path, class: "btn-primary" do %><%= icon "plus", class: "size-4" %> New invoice<% end %><% end %>
+<% end %>
+<%= form_with url: invoices_path, method: :get, class: "card mb-4 flex flex-wrap items-end gap-3 p-3" do |f| %>
+  <div class="min-w-48 flex-1"><label class="label">Search</label><%= f.search_field :q, value: params[:q], class: "input", placeholder: "Invoice no. or shop" %></div>
+  <div><label class="label">From</label><%= f.date_field :from, value: @from, class: "input" %></div>
+  <div><label class="label">To</label><%= f.date_field :to, value: @to, class: "input" %></div>
+  <div><label class="label">Market</label><%= f.select :market_id, Market.all.map { [_1.name, _1.id] }, { include_blank: "All", selected: params[:market_id] }, class: "input" %></div>
+  <div><label class="label">Show</label><%= f.select :state, [["All", ""], ["Unpaid", "unpaid"], ["Overdue", "overdue"], ["E-way bill pending", "eway"], ["Cancelled", "cancelled"]], { selected: params[:state] }, class: "input" %></div>
+  <%= f.submit "Filter", class: "btn" %>
+<% end %>
+<div class="card overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Invoice</th><th>Date</th><th>Customer</th><th>Channel</th><th class="num">Total</th><th class="num">Outstanding</th><th>Status</th></tr></thead>
+    <tbody>
+      <% @invoices.each do |i| %>
+        <tr class="<%= 'opacity-60' if i.cancelled? %>">
+          <td><%= link_to i.number, i, class: "font-medium text-brand-700 hover:underline" %> <% if i.eway_required && i.eway_bill_no.blank? && i.posted? %><span class="badge-amber" title="E-way bill needed">EWB</span><% end %></td>
+          <td class="text-slate-500"><%= d i.invoice_date %></td>
+          <td><%= link_to i.bill_to_name, i.customer, class: "hover:underline" %></td>
+          <td><%= channel_badge i.channel %></td>
+          <td class="num"><%= inr i.total_paise %></td>
+          <td class="num"><%= i.outstanding_paise.positive? ? inr(i.outstanding_paise) : "—" %></td>
+          <td><%= status_badge i.payment_state %></td>
+        </tr>
+      <% end %>
+    </tbody>
+    <tfoot class="border-t border-slate-200 bg-slate-50 font-semibold"><tr><td colspan="4" class="px-4 py-2"><%= @invoices.size %> invoices</td><td class="num px-4 py-2"><%= inr @totals[:total] %></td><td class="num px-4 py-2"><%= inr @totals[:due] %></td><td></td></tr></tfoot>
+  </table>
+  <% if @invoices.empty? %><%= empty_state "No invoices match." %><% end %>
+</div>

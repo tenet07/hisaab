@@ -1,0 +1,25 @@
+<% content_for :title, "Dues" %>
+<%= page_header "Dues & ageing", "As of #{d Date.current}" do %>
+  <%= link_to "CSV", dues_report_path(format: :csv, overdue: params[:overdue], market_id: params[:market_id]), class: "btn" %>
+<% end %>
+<%= form_with url: dues_report_path, method: :get, class: "card mb-4 flex flex-wrap items-end gap-3 p-3" do |f| %>
+  <div><label class="label">Market</label><%= f.select :market_id, Market.all.map { [_1.name, _1.id] }, { include_blank: "All", selected: params[:market_id] }, class: "input" %></div>
+  <label class="flex items-center gap-2 pb-2 text-sm"><%= check_box_tag :overdue, "1", params[:overdue] == "1" %> Overdue bills only</label>
+  <%= f.submit "Show", class: "btn" %>
+<% end %>
+<div class="card overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Customer</th><th>Market</th><th>Oldest bill</th><% %w[0–30 31–60 61–90 90+].each do |k| %><th class="num"><%= k %></th><% end %><th class="num">Overdue</th><th class="num">Total</th><th></th></tr></thead>
+    <tbody>
+      <% @rows.each do |r| %>
+        <tr><td><%= link_to r[:customer].shop_name, customer_path(r[:customer], tab: "bills"), class: "font-medium hover:underline" %></td><td class="text-slate-500"><%= r[:customer].market&.name %></td><td class="text-slate-500"><%= d r[:oldest] %></td>
+          <% r[:ages].each do |k, v| %><td class="num <%= 'text-rose-600' if v.positive? && k != '0–30' %>"><%= v.positive? ? inr0(v) : "·" %></td><% end %>
+          <td class="num font-medium <%= 'text-rose-600' if r[:overdue].positive? %>"><%= inr0 r[:overdue] %></td><td class="num font-semibold"><%= inr0 r[:total] %></td>
+          <td><% if can?(:whatsapp) && r[:overdue].positive? %><%= button_to "Remind", send_statement_customer_path(r[:customer]), class: "btn-sm btn" %><% end %></td></tr>
+      <% end %>
+    </tbody>
+    <tfoot class="border-t border-slate-200 bg-slate-50 font-semibold"><tr><td class="px-4 py-2" colspan="3"><%= @rows.size %> customers</td>
+      <% %w[0–30 31–60 61–90 90+].each do |k| %><td class="num px-4 py-2"><%= inr0 @rows.sum { _1[:ages][k] } %></td><% end %>
+      <td class="num px-4 py-2"><%= inr0 @rows.sum { _1[:overdue] } %></td><td class="num px-4 py-2"><%= inr0 @rows.sum { _1[:total] } %></td><td></td></tr></tfoot>
+  </table>
+</div>

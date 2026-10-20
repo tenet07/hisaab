@@ -1,0 +1,29 @@
+<% content_for :title, "Customers" %>
+<%= page_header "Customers", "#{@customers.size} shops" do %>
+  <% if can?(:customers_edit) %>
+    <%= link_to "Import CSV", import_customers_path, class: "btn" %>
+    <%= link_to new_customer_path, class: "btn-primary" do %><%= icon "plus", class: "size-4" %> Add customer<% end %>
+  <% end %>
+<% end %>
+<%= form_with url: customers_path, method: :get, class: "card mb-4 flex flex-wrap items-end gap-3 p-3" do |f| %>
+  <div class="min-w-56 flex-1"><label class="label">Search</label><%= f.search_field :q, value: params[:q], class: "input", placeholder: "Shop, owner, code, phone, GSTIN" %></div>
+  <div><label class="label">Market</label><%= f.select :market_id, Market.all.map { [_1.name, _1.id] }, { include_blank: "All", selected: params[:market_id] }, class: "input" %></div>
+  <% if can?(:ledgers) %><label class="flex items-center gap-2 pb-2 text-sm"><%= check_box_tag :owing, "1", params[:owing] == "1" %> Owing only</label>
+  <div><label class="label">Sort</label><%= f.select :sort, [["Name", ""], ["Balance", "balance"]], { selected: params[:sort] }, class: "input" %></div><% end %>
+  <%= f.submit "Filter", class: "btn" %>
+<% end %>
+<div class="card overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Shop</th><th>Code</th><th>Market</th><th>Phone</th><th>GSTIN</th><% if can?(:ledgers) %><th class="num">Balance</th><th class="num">Limit</th><% end %></tr></thead>
+    <tbody>
+      <% @customers.each do |c| %>
+        <tr><td><%= link_to c.shop_name, c, class: "font-medium text-slate-900 hover:underline" %><div class="text-xs text-slate-500"><%= c.owner_name %></div></td>
+          <td class="text-slate-500 tnum"><%= c.code %></td><td><%= c.market&.name %></td><td class="text-slate-500 tnum"><%= c.display_phone %></td>
+          <td class="text-xs text-slate-500 tnum"><%= c.gstin || "B2C" %></td>
+          <% if can?(:ledgers) %><td class="num"><%= balance_tag c.balance_paise %></td>
+          <td class="num <%= 'text-rose-600 font-medium' if c.credit_limit_paise.positive? && c.balance_paise > c.credit_limit_paise %>"><%= c.credit_limit_paise.positive? ? inr0(c.credit_limit_paise) : "—" %></td><% end %></tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% if @customers.empty? %><%= empty_state "No customers match." %><% end %>
+</div>

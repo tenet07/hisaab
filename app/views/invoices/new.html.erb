@@ -1,0 +1,24 @@
+<% content_for :title, "New invoice" %>
+<%= page_header "New invoice", "Posts immediately: stock goes out and the customer is debited." %>
+<%= catalog_script "product-catalog", product_catalog_json %>
+<%= catalog_script "customer-catalog", customer_catalog_json %>
+<%= form_with url: invoices_path, class: "space-y-4", data: { controller: "lines", lines_tier_value: @customer&.price_tier || "wholesale", turbo_confirm: "Post this GST invoice?" } do |f| %>
+  <div class="card-pad grid gap-4 sm:grid-cols-4">
+    <div class="field sm:col-span-2"><label class="label">Customer</label><%= combobox name: "customer_id", value: @customer&.id, label: @customer&.shop_name, source: "customer-catalog", autofocus: @customer.nil? %></div>
+    <div class="field"><label class="label">Invoice date</label><%= f.date_field :invoice_date, value: Date.current, class: "input", readonly: !can_set_rates? %></div>
+    <div class="field"><label class="label">Channel</label><%= f.select :channel, Order::CHANNELS.map { [_1.capitalize, _1] }, {}, class: "input" %></div>
+  </div>
+  <div class="card">
+    <%= render "shared/lines_table", prefix: "lines", lines: [], editable_rate: can_set_rates? %>
+    <div class="flex items-center justify-end gap-6 border-t border-slate-100 bg-slate-50/60 px-5 py-3 text-sm">
+      <span class="text-slate-500">Taxable <span class="tnum text-slate-800" data-lines-target="taxable"></span></span>
+      <span class="text-slate-500">GST <span class="tnum text-slate-800" data-lines-target="tax"></span></span>
+      <span class="text-base font-semibold">Total <span class="tnum" data-lines-target="total"></span></span>
+    </div>
+  </div>
+  <div class="flex flex-wrap items-center justify-end gap-4">
+    <label class="flex items-center gap-2 text-sm"><%= check_box_tag :whatsapp, "1", true %> Send on WhatsApp</label>
+    <% if Current.user.owner? %><label class="flex items-center gap-2 text-sm text-slate-600"><%= check_box_tag :allow_negative, "1" %> Allow beyond stock</label><% end %>
+    <%= f.button class: "btn-primary btn-lg" do %><%= icon "check", class: "size-5" %> Post invoice<% end %>
+  </div>
+<% end %>

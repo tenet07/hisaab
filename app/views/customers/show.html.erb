@@ -1,0 +1,88 @@
+<% content_for :title, @customer.shop_name %>
+<% c = @customer %>
+<div class="mb-2"><%= link_to "← Customers", customers_path, class: "text-sm text-slate-500 hover:text-slate-800" %></div>
+<%= page_header c.shop_name, [c.code, c.owner_name, c.market&.name, c.display_phone].compact.join(" · ") do %>
+  <%= link_to wa_link(c.phone), class: "btn", target: "_blank", rel: "noopener" do %><%= icon "whatsapp", class: "size-4 text-[#25d366]" %> Chat<% end %>
+  <% if can?(:customers_edit) %><%= link_to "Edit", edit_customer_path(c), class: "btn" %><% end %>
+  <% unless Current.user.read_only? %>
+    <% if can?(:orders) %><%= link_to "New order", new_order_path(customer_id: c.id), class: "btn" %><% end %>
+    <% if can?(:invoice_post) %><%= link_to "Bill", new_invoice_path(customer_id: c.id), class: "btn" %><% end %>
+    <% if can?(:payments) %><%= link_to new_payment_path(customer_id: c.id), class: "btn-primary" do %><%= icon "rupee", class: "size-4" %> Payment<% end %><% end %>
+  <% end %>
+<% end %>
+
+<% if can?(:ledgers) %>
+<div class="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
+  <%= stat_tile "Balance", (c.balance_paise.negative? ? "#{inr0(-c.balance_paise)} Cr" : inr0(c.balance_paise)) %>
+  <%= stat_tile "Overdue", inr0(c.overdue_paise), tone: (c.overdue_paise.positive? ? "text-rose-600" : nil) %>
+  <%= stat_tile "Oldest unpaid", (c.oldest_unpaid ? short_d(c.oldest_unpaid.invoice_date) : "—"), sub: c.oldest_unpaid&.number %>
+  <%= stat_tile "Credit limit", (c.credit_limit_paise.positive? ? inr0(c.credit_limit_paise) : "None"), sub: (c.over_credit_limit? ? "Over limit" : nil) %>
+  <%= stat_tile "Advance", inr0(c.unallocated_paise), sub: "unmatched payments" %>
+</div>
+<% end %>
+
+<div class="tabs mb-4">
+  <% tabs = { "ledger" => "Ledger", "bills" => "Unpaid bills", "replacements" => "Replacements", "profile" => "Profile" } %>
+  <% tabs.delete("ledger") unless can?(:ledgers) %>
+  <% tabs.each do |k, v| %><%= link_to v, customer_path(c, tab: k), class: ["tab", ("active" if @tab == k)] %><% end %>
+</div>
+
+<% case @tab %>
+<% when "ledger" %>
+  <div class="card">
+    <%= form_with url: customer_path(c), method: :get, class: "flex flex-wrap items-end gap-3 border-b border-slate-100 p-3" do |f| %>
+      <%= f.hidden_field :tab, value: "ledger" %>
+      <div><label class="label">From</label><%= f.date_field :from, value: @from, class: "input" %></div>
+      <div><label class="label">To</label><%= f.date_field :to, value: @to, class: "input" %></div>
+      <%= f.submit "Show", class: "btn" %>
+      <div class="ml-auto flex gap-2">
+        <%= link_to statement_customer_path(c, from: @from, to: @to), class: "btn", target: "_blank" do %><%= icon "printer", class: "size-4" %> Statement PDF<% end %>
+        <% unless Current.user.read_only? %><%= button_to send_statement_customer_path(c), class: "btn" do %><%= icon "whatsapp", class: "size-4 text-[#25d366]" %> Send<% end %><% end %>
+      </div>
+    <% end %>
+    <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Date</th><th>Particulars</th><th>By</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th></tr></thead>
+      <tbody>
+        <% bal = @opening %>
+        <tr class="bg-slate-50/60"><td></td><td class="font-medium">Opening balance</td><td></td><td></td><td></td><td class="num font-medium"><%= balance_tag bal %></td></tr>
+        <% @entries.each do |e| %>
+          <% bal += e.debit_paise - e.credit_paise %>
+          <tr><td class="text-slate-500 whitespace-nowrap"><%= d e.entry_date %></td>
+            <td><%= e.document && !e.document.is_a?(BrandClaim) ? link_to(e.narration, e.document, class: "hover:underline") : e.narration %>
+              <% if e.entry_type.end_with?("reversal", "bounce") %><span class="badge-red ml-1"><%= e.entry_type.humanize %></span><% end %></td>
+            <td class="text-xs text-slate-400" title="<%= e.device %> · <%= dt e.created_at %>"><%= e.user&.name %></td>
+            <td class="num"><%= inr e.debit_paise if e.debit_paise.positive? %></td><td class="num text-emerald-700"><%= inr e.credit_paise if e.credit_paise.positive? %></td>
+            <td class="num"><%= balance_tag bal %></td></tr>
+        <% end %>
+      </tbody>
+    </table>
+    </div>
+    <div class="border-t border-slate-100 px-5 py-2.5 text-xs text-slate-500">Entries are never edited or deleted — corrections appear as reversing entries.</div>
+  </div>
+<% when "bills" %>
+  <div class="grid gap-5 lg:grid-cols-[1fr_300px]">
+    <div class="card overflow-x-auto">
+      <table class="table"><thead><tr><th>Invoice</th><th>Date</th><th>Due</th><th class="num">Total</th><th class="num">Outstanding</th><th>Status</th></tr></thead>
+        <tbody><% @open.each do |i| %><tr><td><%= link_to i.number, i, class: "link" %></td><td class="text-slate-500"><%= d i.invoice_date %></td><td class="text-slate-500"><%= d i.due_date %></td>
+          <td class="num"><%= inr i.total_paise %></td><td class="num font-medium"><%= inr i.outstanding_paise %></td><td><%= status_badge i.payment_state %><% if i.overdue? %> <span class="text-xs text-rose-600"><%= i.days_overdue %>d</span><% end %></td></tr><% end %></tbody></table>
+      <% if @open.empty? %><%= empty_state "Nothing unpaid. 🎉" %><% end %>
+    </div>
+    <div class="card"><div class="card-head"><h2 class="card-title">Ageing</h2></div>
+      <ul class="divide-y divide-slate-100 text-sm"><% @ageing.each do |k, v| %><li class="flex justify-between px-5 py-2"><span class="text-slate-500"><%= k %> days</span><span class="tnum <%= 'text-rose-600 font-medium' if v.positive? && k != '0–30' %>"><%= inr0 v %></span></li><% end %></ul></div>
+  </div>
+<% when "replacements" %>
+  <div class="card overflow-x-auto">
+    <table class="table"><thead><tr><th>Ref</th><th>Date</th><th>Item</th><th>Warranty</th><th>Outcome</th><th>Claim</th></tr></thead>
+      <tbody><% c.replacements.includes(:product).recent.each do |r| %><tr><td><%= link_to r.number, r, class: "link" %></td><td class="text-slate-500"><%= d r.created_at.to_date %></td><td><%= r.product.display_name %></td>
+        <td><%= r.warranty_valid ? tag.span("Valid till #{short_d r.warranty_until}", class: "badge-green") : tag.span("Expired", class: "badge-red") %></td><td><%= r.outcome.humanize %></td><td><%= status_badge r.claim_status %></td></tr><% end %></tbody></table>
+    <% if c.replacements.empty? %><%= empty_state "No replacements." %><% end %>
+  </div>
+<% else %>
+  <div class="card-pad grid gap-4 text-sm sm:grid-cols-2">
+    <% { "Owner" => c.owner_name, "Phone" => c.display_phone, "GSTIN" => c.gstin || "Unregistered (B2C)", "State" => GstStates::NAMES[c.state_code || shop.state_code],
+         "Address" => c.address, "Market" => c.market&.name, "Price tier" => c.price_tier.humanize, "Marketing messages" => c.marketing_opt_in ? "Opted in" : "Not opted in" }.each do |k, v| %>
+      <div><div class="label"><%= k %></div><div><%= v.presence || "—" %></div></div>
+    <% end %>
+  </div>
+<% end %>

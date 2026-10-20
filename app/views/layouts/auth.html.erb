@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <title>Sign in · <%= shop.name %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="#3b55e6">
+    <%= csrf_meta_tags %>
+    <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+  <body class="h-full bg-gradient-to-br from-brand-50 via-white to-emerald-50">
+    <div id="flash"><%= render "shared/flash" %></div>
+    <%= yield %>
+  </body>
+</html>

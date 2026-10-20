@@ -1,0 +1,19 @@
+<% content_for :title, "Reports" %>
+<%= page_header "Reports & GST", "Everything is computed from the ledgers, so it always ties out." %>
+<% m = (Date.current.prev_month).strftime("%Y-%m") %>
+<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+  <% [["Sales", "By market, salesman, brand, product, channel", sales_report_path, "chart"],
+      ["Dues & ageing", "Who owes what, by market, 0–30/31–60/61–90/90+", dues_report_path, "clock"],
+      ["Collections", "By person, mode, market and day", collections_report_path, "rupee"],
+      ["Day book", "Every ledger and stock entry for a day", day_book_path, "list"],
+      ["GSTR-1", "B2B, B2CL, B2CS, CDNR, HSN, documents — CSV & portal JSON", gstr1_report_path(month: m), "doc"],
+      ["GSTR-3B", "Outward tax, inter-state B2C by state, ITC, net payable", gstr3b_report_path(month: m), "scale"],
+      ["HSN summary", "HSN-wise quantity, taxable and tax", hsn_report_path(month: m), "list"],
+      ["Tally export", "Ledgers + sales, credit note, receipt, purchase vouchers (XML)", tally_export_path(month: m), "download"],
+      ["CA month-end pack", "GSTR-1 tables, Tally XML, registers — one zip", ca_pack_path(month: m), "download"]].each do |t, s, path, ic| %>
+    <%= link_to path, class: "card group flex gap-4 p-5 transition hover:border-brand-300 hover:shadow-md" do %>
+      <div class="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600"><%= icon ic, class: "size-5" %></div>
+      <div><div class="font-semibold text-slate-900 group-hover:text-brand-700"><%= t %></div><div class="text-sm text-slate-500"><%= s %></div></div>
+    <% end %>
+  <% end %>
+</div>

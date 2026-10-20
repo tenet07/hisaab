@@ -1,0 +1,25 @@
+<% content_for :title, "Record payment" %>
+<%= catalog_script "customer-catalog", customer_catalog_json %>
+<div class="mx-auto max-w-xl">
+  <%= page_header "Record payment", "Matched to the oldest unpaid bills first (FIFO)." %>
+  <%= form_with url: payments_path, class: "card-pad space-y-4", data: { controller: "payment-preview" } do |f| %>
+    <%= f.hidden_field :client_uuid, value: SecureRandom.uuid %>
+    <div class="field"><label class="label">Customer</label>
+      <%= combobox name: "customer_id", value: @customer&.id, label: @customer&.shop_name, source: "customer-catalog", autofocus: @customer.nil?, extra_action: "combobox:picked->payment-preview#load" %></div>
+    <div data-payment-preview-target="dues" class="text-sm">
+      <% if @customer %><%= render "dues", customer: @customer %><% end %>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="field"><label class="label">Amount ₹</label><%= f.number_field :amount, value: params[:amount], step: "0.01", min: "0.01", class: "input-lg tnum", required: true, autofocus: @customer.present? %></div>
+      <div class="field"><label class="label">Date</label><%= f.date_field :received_on, value: Date.current, class: "input-lg", readonly: !can?(:ledgers) %></div>
+    </div>
+    <div class="field"><span class="label">Mode</span>
+      <div class="grid grid-cols-4 gap-1.5">
+        <% Payment::MODES.each_with_index do |(v, l), i| %><label class="btn cursor-pointer has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-800"><%= radio_button_tag :mode, v, i.zero?, class: "sr-only" %><%= l %></label><% end %>
+      </div></div>
+    <div class="field"><label class="label">Reference</label><%= f.text_field :reference, class: "input", placeholder: "UTR, cheque no. + bank" %></div>
+    <div class="field"><label class="label">Notes</label><%= f.text_field :notes, class: "input" %></div>
+    <label class="flex items-center gap-2 text-sm"><%= check_box_tag :whatsapp, "1", true %> Send receipt on WhatsApp</label>
+    <%= f.button class: "btn-primary btn-lg w-full" do %><%= icon "check", class: "size-5" %> Record payment<% end %>
+  <% end %>
+</div>

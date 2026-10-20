@@ -1,0 +1,28 @@
+<% content_for :title, "Stock" %>
+<%= page_header "Stock", "Every number here is a sum of movements — nobody types a stock count." do %>
+  <% if can?(:stock) %><%= link_to "Movement log", stock_movements_path, class: "btn" %><% end %>
+  <% if can?(:counts) %><%= link_to "Start a count", new_stock_count_path, class: "btn" %><% end %>
+<% end %>
+<div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+  <% @totals.each do |b, q| %><%= stat_tile StockMovement::BUCKET_LABELS[b], q, sub: "pieces" %><% end %>
+  <% if @value %><%= stat_tile "Sellable value (cost)", inr_compact(@value) %><% end %>
+</div>
+<%= form_with url: stock_path, method: :get, class: "card mb-4 flex flex-wrap items-end gap-3 p-3" do |f| %>
+  <div class="min-w-56 flex-1"><label class="label">Look up</label><%= f.search_field :q, value: params[:q], class: "input", placeholder: "Name, SKU, alias", autofocus: true %></div>
+  <div><label class="label">Brand</label><%= f.select :brand_id, Brand.all.map { [_1.name, _1.id] }, { include_blank: "All", selected: params[:brand_id] }, class: "input" %></div>
+  <label class="flex items-center gap-2 pb-2 text-sm"><%= check_box_tag :low, "1", params[:low] == "1" %> At/below reorder level</label>
+  <%= f.submit "Show", class: "btn" %>
+<% end %>
+<div class="card overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Product</th><th>SKU</th><% StockMovement::BUCKETS.each do |b| %><th class="num"><%= StockMovement::BUCKET_LABELS[b] %></th><% end %><th class="num">Reorder at</th></tr></thead>
+    <tbody>
+      <% @rows.each do |p, b| %>
+        <tr><td><%= can?(:products) ? link_to(p.display_name, p, class: "font-medium hover:underline") : p.display_name %></td><td class="text-slate-500 tnum"><%= p.sku %></td>
+          <td class="num font-semibold <%= b['sellable'] <= 0 ? 'text-rose-600' : b['sellable'] <= p.reorder_level ? 'text-amber-700' : '' %>"><%= b["sellable"] %></td>
+          <td class="num"><%= b["awaiting_claim"].nonzero? || "·" %></td><td class="num"><%= b["with_brand"].nonzero? || "·" %></td><td class="num text-slate-500"><%= b["written_off"].nonzero? || "·" %></td>
+          <td class="num text-slate-500"><%= p.reorder_level %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

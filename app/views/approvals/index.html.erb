@@ -1,0 +1,24 @@
+<% content_for :title, "Approvals" %>
+<%= page_header "Approvals", "Write-offs, big discounts and count adjustments wait for the owner." %>
+<div class="space-y-3">
+  <% @pending.each do |a| %>
+    <div class="card flex flex-wrap items-center gap-4 p-4">
+      <span class="badge-amber"><%= a.kind_label %></span>
+      <div class="min-w-0 flex-1">
+        <div class="font-medium"><%= a.subject.try(:number) || a.subject.model_name.human %> <% if a.subject.respond_to?(:product) %>· <%= a.subject.product.display_name %><% end %></div>
+        <div class="text-sm text-slate-500"><%= a.reason %> · asked by <%= a.requested_by&.name || "system" %> <%= time_ago_in_words a.created_at %> ago</div>
+      </div>
+      <% if a.amount_paise %><div class="tnum font-semibold"><%= inr a.amount_paise %></div><% end %>
+      <%= link_to "Open", a.subject, class: "btn" rescue nil %>
+      <% if Current.user.owner? %>
+        <%= button_to "Reject", reject_approval_path(a), class: "btn-danger" %>
+        <%= button_to "Approve", approve_approval_path(a), class: "btn-success" %>
+      <% end %>
+    </div>
+  <% end %>
+  <% if @pending.empty? %><div class="card"><%= empty_state "Nothing waiting for you." %></div><% end %>
+</div>
+<div class="card mt-6 overflow-x-auto">
+  <div class="card-head"><h2 class="card-title">Decided</h2></div>
+  <table class="table"><tbody><% @recent.each do |a| %><tr><td><%= a.kind_label %></td><td class="text-slate-500"><%= a.reason %></td><td><%= status_badge a.status %></td><td class="text-slate-500"><%= a.decided_by&.name %> · <%= dt a.decided_at %></td></tr><% end %></tbody></table>
+</div>

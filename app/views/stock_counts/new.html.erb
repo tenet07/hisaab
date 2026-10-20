@@ -1,0 +1,8 @@
+<% content_for :title, "New count" %>
+<%= page_header "Start a count", "System quantities freeze when you open the sheet. Count, enter, then post." %>
+<%= form_with url: stock_counts_path, class: "card-pad max-w-2xl space-y-4" do |f| %>
+  <label class="flex items-center gap-2"><%= radio_button_tag :scope, "due", true %> This month's slice (<%= @due.size %> products)</label>
+  <label class="flex items-center gap-2"><%= radio_button_tag :scope, "all" %> Full count (all products)</label>
+  <div class="text-xs text-slate-500"><%= @due.map(&:display_name).first(12).join(", ") %><%= "…" if @due.size > 12 %></div>
+  <%= f.submit "Open count sheet", class: "btn-primary" %>
+<% end %>

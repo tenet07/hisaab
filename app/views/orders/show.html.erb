@@ -1,0 +1,68 @@
+<% content_for :title, @order.number %>
+<%= catalog_script "product-catalog", product_catalog_json %>
+<div class="mb-2"><%= link_to "← Order queue", orders_path, class: "text-sm text-slate-500 hover:text-slate-800" %></div>
+<%= page_header "#{@order.customer.shop_name}", "#{@order.number} · #{@order.channel.capitalize} · #{dt @order.created_at}#{" · by #{@order.created_by.name}" if @order.created_by}" do %>
+  <%= status_badge @order.status %>
+  <% if @order.invoice %><%= link_to "Invoice #{@order.invoice.number} →", @order.invoice, class: "btn" %><% end %>
+<% end %>
+
+<div class="grid gap-5 xl:grid-cols-[1fr_320px]">
+  <div class="space-y-4">
+    <% if @order.raw_message.present? %>
+      <div class="card-pad">
+        <div class="mb-2 flex items-center gap-2 text-xs font-medium text-slate-500"><%= icon "whatsapp", class: "size-4 text-[#25d366]" %> Customer wrote</div>
+        <div class="max-w-2xl rounded-2xl rounded-tl-none bg-[#e7f8ee] px-4 py-3 text-[15px] whitespace-pre-line text-slate-800"><%= @order.raw_message %></div>
+      </div>
+    <% end %>
+
+    <% if @order.editable? %>
+      <%= form_with url: order_path(@order), method: :patch, data: { controller: "lines", lines_tier_value: @order.customer.price_tier } do |f| %>
+        <div class="card">
+          <div class="card-head"><h2 class="card-title">Lines</h2>
+            <% if @order.needs_review? %><span class="badge-amber"><%= icon "alert", class: "size-3" %> Some lines need a check</span><% end %></div>
+          <%= render "shared/lines_table", prefix: "lines", lines: @rows, editable_rate: can_set_rates? %>
+          <div class="flex items-center justify-end gap-6 border-t border-slate-100 bg-slate-50/60 px-5 py-3 text-sm">
+            <span class="text-slate-500">Taxable <span class="tnum text-slate-800" data-lines-target="taxable"></span></span>
+            <span class="text-slate-500">GST <span class="tnum text-slate-800" data-lines-target="tax"></span></span>
+            <span class="text-base font-semibold">Est. <span class="tnum" data-lines-target="total"></span></span>
+          </div>
+        </div>
+        <div class="card-pad mt-4"><label class="label">Notes</label><%= f.text_area :notes, value: @order.notes, rows: 2, class: "input" %></div>
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+          <%= f.button "Save", class: "btn" %>
+          <% if @order.draft? %><%= f.button name: "then", value: "confirm", class: "btn-primary btn-lg" do %><%= icon "check", class: "size-5" %> Confirm order<% end %><% end %>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="card">
+        <table class="table"><thead><tr><th>Item</th><th class="num">Qty</th></tr></thead>
+          <tbody><% @order.lines.each do |l| %><tr><td><%= l.product&.display_name %></td><td class="num"><%= l.quantity %></td></tr><% end %></tbody></table>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="space-y-4">
+    <% c = @order.customer %>
+    <div class="card-pad space-y-2 text-sm">
+      <div class="flex justify-between"><span class="text-slate-500">Balance</span><%= balance_tag c.balance_paise %></div>
+      <div class="flex justify-between"><span class="text-slate-500">Overdue</span><span class="tnum <%= 'font-medium text-rose-600' if c.overdue_paise.positive? %>"><%= inr c.overdue_paise %></span></div>
+      <div class="flex justify-between"><span class="text-slate-500">Credit limit</span><span class="tnum"><%= c.credit_limit_paise.positive? ? inr(c.credit_limit_paise) : "—" %></span></div>
+      <% if c.over_credit_limit?(@order.estimate_paise) %><div class="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">This order takes them over their credit limit.</div><% end %>
+      <%= link_to "Open ledger →", c, class: "link text-xs" %>
+    </div>
+    <% if @order.confirmed? && can?(:invoice_post) %>
+      <%= form_with url: convert_order_path(@order), class: "card-pad space-y-3", data: { turbo_confirm: "Post a GST invoice for this order?" } do |f| %>
+        <div class="text-sm font-semibold">Bill this order</div>
+        <label class="flex items-center gap-2 text-sm"><%= check_box_tag :whatsapp, "1", true, id: "wa" %> Send invoice on WhatsApp</label>
+        <% if Current.user.owner? %><label class="flex items-center gap-2 text-sm text-slate-600"><%= check_box_tag :allow_negative, "1", false %> Allow billing beyond stock</label><% end %>
+        <%= f.button class: "btn-success btn-lg w-full" do %><%= icon "doc", class: "size-5" %> Post invoice<% end %>
+      <% end %>
+    <% end %>
+    <% if @order.editable? %>
+      <%= form_with url: cancel_order_path(@order), class: "card-pad space-y-2", data: { turbo_confirm: "Cancel this order?" } do |f| %>
+        <%= f.text_field :reason, class: "input", placeholder: "Reason (optional)" %>
+        <%= f.button "Cancel order", class: "btn-danger w-full" %>
+      <% end %>
+    <% end %>
+  </div>
+</div>

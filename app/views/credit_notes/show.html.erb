@@ -1,0 +1,13 @@
+<% content_for :title, @cn.number %>
+<%= page_header "Credit note #{@cn.number}", "#{@cn.customer.shop_name} · #{d @cn.note_date} · #{@cn.reason_label}" do %>
+  <%= link_to credit_note_path(@cn, format: :pdf), class: "btn", target: "_blank" do %><%= icon "printer", class: "size-4" %> PDF<% end %>
+  <%= link_to "Invoice #{@cn.invoice.number}", @cn.invoice, class: "btn" %>
+<% end %>
+<div class="card overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Taxable</th><th class="num">GST</th><th class="num">Total</th></tr></thead>
+    <tbody><% @cn.lines.includes(:product).each do |l| %><tr><td><%= l.product.display_name %></td><td class="num"><%= l.quantity %></td><td class="num"><%= inr l.rate_paise %></td><td class="num"><%= inr l.taxable_paise %></td><td class="num"><%= inr l.tax_paise %></td><td class="num font-medium"><%= inr l.total_paise %></td></tr><% end %></tbody>
+    <tfoot class="border-t border-slate-200 font-semibold"><tr><td colspan="5" class="px-4 py-2 text-right">Total credit</td><td class="num px-4 py-2"><%= inr @cn.total_paise %></td></tr></tfoot>
+  </table>
+  <div class="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">Stock: <%= @cn.restock_bucket ? "returned to #{StockMovement::BUCKET_LABELS[@cn.restock_bucket].downcase}" : "no movement" %> · by <%= @cn.created_by&.name %> <%= " · #{@cn.notes}" if @cn.notes.present? %></div>
+</div>

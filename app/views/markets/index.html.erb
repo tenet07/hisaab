@@ -1,0 +1,7 @@
+<% content_for :title, "Markets" %>
+<%= page_header "Settings" do %><%= link_to new_market_path, class: "btn-primary" do %><%= icon "plus", class: "size-4" %> Add market<% end %><% end %>
+<%= render "settings/nav" %>
+<div class="card overflow-x-auto">
+  <table class="table"><thead><tr><th>Market</th><th>Delivery day</th><th>Salesman</th><th class="num">Customers</th><th></th></tr></thead>
+    <tbody><% @markets.each do |m| %><tr><td class="font-medium"><%= m.name %></td><td><%= m.delivery_day %></td><td><%= m.salesman&.name %></td><td class="num"><%= m.customers.count %></td><td class="text-right"><%= link_to "Edit", edit_market_path(m), class: "btn-sm btn" %></td></tr><% end %></tbody></table>
+</div>

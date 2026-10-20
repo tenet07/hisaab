@@ -1,0 +1,22 @@
+<% content_for :title, "Today" %>
+<% content_for :subtitle, "#{Current.user.name} · #{Date.current.strftime('%a %d %b')}" %>
+<div class="grid grid-cols-2 gap-2">
+  <div class="rounded-2xl bg-white p-3 shadow-xs ring-1 ring-slate-200"><div class="text-xs text-slate-500">Collected today</div><div class="text-xl font-semibold tnum"><%= inr0 @collected %></div></div>
+  <div class="rounded-2xl bg-white p-3 shadow-xs ring-1 ring-slate-200"><div class="text-xs text-slate-500">Orders today</div><div class="text-xl font-semibold tnum"><%= @orders %></div></div>
+</div>
+<div class="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1">
+  <% @markets.each do |m| %>
+    <%= link_to m_root_path(market_id: m.id), class: "shrink-0 rounded-full px-4 py-2 text-sm font-medium #{m == @market ? 'bg-brand-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200'}" do %><%= m.name %><%= " · today" if m.today? %><% end %>
+  <% end %>
+</div>
+<div class="space-y-2" data-controller="prefetch">
+  <% @customers.each do |c| %>
+    <%= link_to m_customer_path(c), class: "m-tap", data: { prefetch_target: "link" } do %>
+      <div class="grid size-10 shrink-0 place-items-center rounded-full bg-brand-50 font-semibold text-brand-700"><%= c.shop_name.first %></div>
+      <div class="min-w-0 flex-1"><div class="truncate font-medium text-slate-900"><%= c.shop_name %></div><div class="truncate text-xs text-slate-500"><%= c.owner_name %></div></div>
+      <div class="text-right"><div class="tnum font-semibold <%= c.balance_paise.positive? ? 'text-slate-900' : 'text-slate-400' %>"><%= inr0 [c.balance_paise, 0].max %></div><div class="text-[11px] text-slate-400">due</div></div>
+      <%= icon "chevron-right", class: "size-4 text-slate-300" %>
+    <% end %>
+  <% end %>
+  <% if @customers.empty? %><div class="rounded-2xl bg-white p-8 text-center text-sm text-slate-500">No shops in this market.</div><% end %>
+</div>

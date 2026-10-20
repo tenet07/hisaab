@@ -1,0 +1,12 @@
+<% content_for :title, "Collections" %>
+<%= page_header "Collections", "#{d @from} – #{d @to} · #{inr0 @total}" %>
+<%= render "range" %>
+<div class="grid gap-5 lg:grid-cols-2">
+  <div class="card overflow-x-auto"><div class="card-head"><h2 class="card-title">By person</h2></div>
+    <table class="table"><thead><tr><th>Collected by</th><% Payment::MODES.each_value do |l| %><th class="num"><%= l %></th><% end %><th class="num">Total</th></tr></thead>
+      <tbody><% @by_person.each do |n, modes, t| %><tr><td><%= n %></td><% Payment::MODES.each_key do |k| %><td class="num"><%= modes[k] ? inr0(modes[k]) : "·" %></td><% end %><td class="num font-semibold"><%= inr0 t %></td></tr><% end %></tbody></table></div>
+  <div class="card"><div class="card-head"><h2 class="card-title">By market</h2></div>
+    <ul class="divide-y divide-slate-100 text-sm"><% @by_market.each do |n, v| %><li class="flex justify-between px-5 py-2"><span><%= n %></span><span class="tnum"><%= inr0 v %></span></li><% end %></ul></div>
+</div>
+<div class="card mt-5"><div class="card-head"><h2 class="card-title">By day</h2></div>
+  <ul class="divide-y divide-slate-100 text-sm"><% @by_day.each do |dd, v| %><li class="flex justify-between px-5 py-2"><span><%= dd.strftime("%a %d %b") %></span><span class="tnum"><%= inr0 v %></span></li><% end %></ul></div>

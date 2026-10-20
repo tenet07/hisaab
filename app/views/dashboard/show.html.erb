@@ -1,0 +1,120 @@
+<% content_for :title, "Home" %>
+<%= page_header "Good #{Time.current.hour < 12 ? 'morning' : Time.current.hour < 17 ? 'afternoon' : 'evening'}, #{Current.user.name.split.first}", Date.current.strftime("%A, %d %B %Y") do %>
+  <%= link_to counter_path, class: "btn" do %><%= icon "bolt", class: "size-4" %> Counter bill<% end %>
+  <% if Current.user.owner? %><%= link_to new_whatsapp_broadcast_path, class: "btn" do %><%= icon "megaphone", class: "size-4" %> Broadcast<% end %><% end %>
+  <%= link_to new_payment_path, class: "btn-primary" do %><%= icon "rupee", class: "size-4" %> Record payment<% end %>
+<% end %>
+
+<div class="grid grid-cols-2 gap-3 lg:grid-cols-5">
+  <%= stat_tile "Sales today", inr0(@today_sales), sub: pluralize(@today_bills, "bill"), href: invoices_path(from: Date.current, to: Date.current) %>
+  <%= stat_tile "Collected today", inr0(@today_collections), href: payments_path(from: Date.current) %>
+  <%= stat_tile "Sales this month", inr_compact(@month_sales), href: sales_report_path %>
+  <%= stat_tile "Outstanding", inr_compact(@outstanding), href: dues_report_path %>
+  <%= stat_tile "Overdue", inr_compact(@overdue), tone: (@overdue.positive? ? "text-rose-600" : nil), href: dues_report_path(overdue: 1) %>
+</div>
+
+<div class="mt-5 grid gap-5 xl:grid-cols-3">
+  <div class="card xl:col-span-2">
+    <div class="card-head"><h2 class="card-title">Sales, last 14 days</h2><span class="text-xs text-slate-500">Total <%= inr0(@daily.values.sum) %></span></div>
+    <% max = [@daily.values.max.to_i, 1].max %>
+    <div class="px-5 pt-4 pb-3">
+      <div class="flex h-44 items-end gap-[2px]" role="img" aria-label="Daily sales bar chart">
+        <% @daily.each do |day, v| %>
+          <div class="group relative flex h-full flex-1 flex-col justify-end">
+            <div class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 rounded-md bg-slate-900 px-2 py-1 text-[11px] whitespace-nowrap text-white group-hover:block"><%= short_d(day) %> · <%= inr0(v) %></div>
+            <div class="rounded-t-[4px] <%= day == Date.current ? 'bg-brand-600' : 'bg-brand-500/70 group-hover:bg-brand-600' %>" style="height: <%= v.zero? ? 0 : [(v * 100.0 / max).round(1), 1.5].max %>%"></div>
+          </div>
+        <% end %>
+      </div>
+      <div class="mt-1.5 flex gap-[2px] border-t border-slate-200 pt-1.5 text-[10px] text-slate-400">
+        <% @daily.each_key.with_index do |day, i| %><div class="flex-1 text-center"><%= i.even? || day == Date.current ? day.strftime("%-d") : "" %></div><% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">Needs you</h2></div>
+    <ul class="divide-y divide-slate-100 text-sm">
+      <% @approvals.each do |a| %>
+        <li class="flex items-center gap-3 px-5 py-2.5"><span class="badge-amber">Approve</span><span class="flex-1 truncate"><%= a.kind_label %> · <%= a.reason %></span><%= link_to "Open", approvals_path, class: "link text-xs" %></li>
+      <% end %>
+      <% @flagged_claims.each do |c| %>
+        <li class="flex items-center gap-3 px-5 py-2.5"><span class="badge-red">Claim</span><span class="flex-1 truncate"><%= c.brand.name %> <%= c.number %> — <%= c.days_out %> days, nothing back</span><%= link_to "Open", c, class: "link text-xs" %></li>
+      <% end %>
+      <% @open_orders.each do |o| %>
+        <li class="flex items-center gap-3 px-5 py-2.5"><%= channel_badge o.channel %><span class="flex-1 truncate"><%= o.customer.shop_name %></span><%= link_to "Review", o, class: "link text-xs" %></li>
+      <% end %>
+      <% if @approvals.empty? && @flagged_claims.empty? && @open_orders.empty? %>
+        <li class="px-5 py-8 text-center text-slate-500">All clear.</li>
+      <% end %>
+    </ul>
+  </div>
+</div>
+
+<div class="card mt-5">
+  <div class="card-head"><h2 class="card-title">By market · <%= Date.current.strftime("%B") %></h2><%= link_to "Dues report →", dues_report_path, class: "link text-xs" %></div>
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Market</th><th>Delivery day</th><th>Salesman</th><th class="num">Sales</th><th class="num">Collected</th><th class="num">Outstanding</th><th class="num">Overdue</th></tr></thead>
+      <tbody>
+        <% @markets.each do |r| %>
+          <tr>
+            <td class="font-medium"><%= r[:market]&.name || "No market" %> <% if r[:market]&.today? %><span class="badge-blue ml-1">Today</span><% end %></td>
+            <td class="text-slate-500"><%= r[:market]&.delivery_day %></td>
+            <td class="text-slate-500"><%= r[:market]&.salesman&.name %></td>
+            <td class="num"><%= inr0 r[:sales] %></td>
+            <td class="num"><%= inr0 r[:collected] %></td>
+            <td class="num"><%= inr0 r[:due] %></td>
+            <td class="num <%= 'font-medium text-rose-600' if r[:overdue].positive? %>"><%= inr0 r[:overdue] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+      <tfoot class="border-t border-slate-200 bg-slate-50 text-sm font-semibold">
+        <tr><td class="px-4 py-2" colspan="3">Total</td>
+          <% %i[sales collected due overdue].each do |k| %><td class="num px-4 py-2"><%= inr0 @markets.sum { _1[k] } %></td><% end %></tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<div class="mt-5 grid gap-5 lg:grid-cols-3">
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">Biggest overdue</h2></div>
+    <ul class="divide-y divide-slate-100 text-sm">
+      <% @top_overdue.each do |c, amt, days| %>
+        <li class="flex items-center gap-3 px-5 py-2.5">
+          <div class="min-w-0 flex-1"><%= link_to c.shop_name, c, class: "block truncate font-medium hover:underline" %><div class="text-xs text-slate-500"><%= c.market&.name %> · oldest <%= pluralize(days, "day") %> late</div></div>
+          <span class="tnum font-medium text-rose-600"><%= inr0 amt %></span>
+        </li>
+      <% end %>
+      <% if @top_overdue.empty? %><li class="px-5 py-8 text-center text-slate-500">Nobody is overdue.</li><% end %>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">Stock alerts</h2><%= link_to "Reorder →", reorder_products_path, class: "link text-xs" %></div>
+    <ul class="divide-y divide-slate-100 text-sm">
+      <% @stock_alerts.each do |p| %>
+        <li class="flex items-center gap-3 px-5 py-2.5"><span class="min-w-0 flex-1 truncate"><%= p.display_name %></span>
+          <span class="tnum text-xs text-slate-500">level <%= p.reorder_level %></span>
+          <span class="tnum w-12 text-right font-medium <%= p.stock_qty.to_i <= 0 ? 'text-rose-600' : 'text-amber-700' %>"><%= p.stock_qty %></span></li>
+      <% end %>
+      <% if @stock_alerts.empty? %><li class="px-5 py-8 text-center text-slate-500">Everything above reorder level.</li><% end %>
+    </ul>
+    <div class="flex gap-4 border-t border-slate-100 px-5 py-2.5 text-xs text-slate-500">
+      <span><%= @awaiting_claim %> pcs awaiting claim</span><span><%= @with_brand %> pcs with brands</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">Today's dispatch</h2><%= link_to "Plan →", dispatch_runs_path, class: "link text-xs" %></div>
+    <ul class="divide-y divide-slate-100 text-sm">
+      <% @runs.each do |r| %>
+        <% done, total = r.progress %>
+        <li class="px-5 py-3">
+          <div class="flex items-center justify-between"><%= link_to r.market.name, r, class: "font-medium hover:underline" %><span class="text-xs text-slate-500"><%= done %>/<%= total %> drops</span></div>
+          <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-emerald-500" style="width: <%= total.zero? ? 0 : done * 100 / total %>%"></div></div>
+        </li>
+      <% end %>
+      <% if @runs.empty? %><li class="px-5 py-8 text-center text-slate-500">No runs planned today.</li><% end %>
+    </ul>
+  </div>
+</div>

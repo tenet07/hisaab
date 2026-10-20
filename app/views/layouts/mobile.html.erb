@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-100">
+  <head>
+    <title><%= [content_for(:title), "Hisaab"].compact.join(" · ") %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="theme-color" content="#3b55e6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <%= csrf_meta_tags %>
+    <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+  <body class="h-full" data-controller="outbox" data-outbox-sync-url-value="<%= m_sync_path %>">
+    <div class="m-shell flex flex-col bg-slate-100">
+      <header class="sticky top-0 z-20 flex items-center gap-3 bg-brand-600 px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3 text-white shadow">
+        <% if content_for?(:back) %><%= link_to content_for(:back), class: "-ml-1 rounded-full p-1.5 hover:bg-white/10" do %><%= icon "arrow-left", class: "size-5" %><% end %><% end %>
+        <div class="min-w-0 flex-1"><div class="truncate text-[17px] font-semibold"><%= content_for(:title) || "Hisaab" %></div>
+          <% if content_for?(:subtitle) %><div class="truncate text-xs text-white/75"><%= content_for(:subtitle) %></div><% end %></div>
+        <span data-outbox-target="badge" hidden class="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-semibold text-amber-950"></span>
+        <span data-outbox-target="offline" hidden title="Offline"><%= icon "wifi-off", class: "size-5" %></span>
+      </header>
+      <div id="flash"><%= render "shared/flash" %></div>
+      <main class="flex-1 space-y-3 px-3 py-3 pb-24"><%= yield %></main>
+      <nav class="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur safe-bottom">
+        <div class="mx-auto flex max-w-lg justify-around pt-2 text-[11px] font-medium text-slate-500">
+          <% if Current.user.salesman? || Current.user.owner? %>
+            <%= link_to m_root_path, class: "flex flex-col items-center gap-0.5 px-3 #{'text-brand-600' if controller_name == 'home'}" do %><%= icon "map", class: "size-6" %>Today<% end %>
+            <%= link_to m_customers_path, class: "flex flex-col items-center gap-0.5 px-3 #{'text-brand-600' if controller_name == 'customers'}" do %><%= icon "users", class: "size-6" %>Shops<% end %>
+          <% end %>
+          <% if Current.user.delivery? || Current.user.owner? %>
+            <%= link_to m_route_path, class: "flex flex-col items-center gap-0.5 px-3 #{'text-brand-600' if controller_name == 'route'}" do %><%= icon "truck", class: "size-6" %>Route<% end %>
+          <% end %>
+          <%= button_to session_path, method: :delete, class: "flex flex-col items-center gap-0.5 px-3", form: { data: { turbo: false } } do %><%= icon "logout", class: "size-6" %>Sign out<% end %>
+        </div>
+      </nav>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+<div class="tabs mb-5">
+  <%= link_to "Shop & GST", settings_path, class: ["tab", ("active" if controller_name == "settings")] %>
+  <%= link_to "Users & roles", users_path, class: ["tab", ("active" if controller_name == "users")] %>
+  <%= link_to "Markets & routes", markets_path, class: ["tab", ("active" if controller_name == "markets")] %>
+  <%= link_to "Brands & warranty", brands_path, class: ["tab", ("active" if controller_name == "brands")] %>
+</div>

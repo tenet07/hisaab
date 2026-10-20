@@ -1,0 +1,43 @@
+<% c = @drop.customer %>
+<% content_for :title, c.shop_name %>
+<% content_for :subtitle, "#{@invoice.number} · #{inr0 @invoice.total_paise}" %>
+<% content_for :back, m_route_path %>
+<% if @drop.done? %>
+  <div class="rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-800 ring-1 ring-emerald-200"><%= @drop.status.humanize %> at <%= @drop.delivered_at&.strftime("%I:%M %p") %> (<%= @drop.proof %>)</div>
+<% else %>
+<%= form_with url: m_drop_path(@drop), method: :patch, multipart: true, class: "space-y-3", data: { controller: "outbox-form", outbox_form_kind_value: "drop", outbox_form_back_value: m_route_path, action: "submit->outbox-form#submit" } do |f| %>
+  <%= hidden_field_tag :delivery_id, @drop.id %>
+  <%= f.hidden_field :client_uuid, value: SecureRandom.uuid, data: { outbox_form_target: "uuid" } %>
+  <div class="flex gap-2">
+    <%= link_to "tel:+#{c.phone}", class: "btn flex-1 py-3" do %><%= icon "phone", class: "size-4" %> Call<% end %>
+    <%= link_to "https://maps.google.com/?q=#{ERB::Util.url_encode(c.address.to_s)}", class: "btn flex-1 py-3", target: "_blank" do %><%= icon "map", class: "size-4" %> Map<% end %>
+  </div>
+  <div class="overflow-hidden rounded-2xl bg-white shadow-xs ring-1 ring-slate-200">
+    <div class="px-4 pt-3 pb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">Items · enter any short</div>
+    <% @invoice.lines.each do |l| %>
+      <div class="flex items-center gap-3 border-t border-slate-100 px-4 py-2.5 text-sm">
+        <div class="min-w-0 flex-1"><div class="truncate"><%= l.description %></div><div class="text-xs text-slate-500"><%= l.quantity %> pcs</div></div>
+        <%= number_field_tag "shortfall[#{l.id}]", nil, min: 0, max: l.quantity, inputmode: "numeric", placeholder: "short", class: "input w-20 text-center" %>
+      </div>
+    <% end %>
+  </div>
+  <div class="rounded-2xl bg-white p-4 shadow-xs ring-1 ring-slate-200 space-y-3">
+    <div class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Proof of delivery</div>
+    <%= f.text_field :otp, inputmode: "numeric", maxlength: 4, class: "input-lg text-center text-2xl tracking-[0.5em] tnum", placeholder: "OTP" %>
+    <div class="text-center text-xs text-slate-400">— or —</div>
+    <label class="btn w-full cursor-pointer py-3"><%= icon "camera", class: "size-5" %> <span data-outbox-form-target="photoLabel">Take photo</span>
+      <%= f.file_field :photo, accept: "image/*", capture: "environment", class: "sr-only", data: { outbox_form_target: "photo", action: "change->outbox-form#photoPicked" } %></label>
+  </div>
+  <div class="rounded-2xl bg-white p-4 shadow-xs ring-1 ring-slate-200 space-y-3">
+    <div class="flex items-center justify-between text-xs font-semibold tracking-wide text-slate-500 uppercase"><span>Collect</span><span class="normal-case tracking-normal">due <%= inr0 c.balance_paise %></span></div>
+    <%= f.number_field :amount, step: "0.01", inputmode: "decimal", class: "input-lg tnum", placeholder: "Amount received ₹ (optional)" %>
+    <div class="grid grid-cols-3 gap-2"><% [["cash", "Cash"], ["upi", "UPI"], ["cheque", "Cheque"]].each_with_index do |(v, l), i| %><label class="cursor-pointer rounded-xl py-2.5 text-center text-sm font-medium ring-1 ring-slate-200 has-[:checked]:bg-emerald-600 has-[:checked]:text-white"><%= radio_button_tag :mode, v, i.zero?, class: "sr-only" %><%= l %></label><% end %></div>
+  </div>
+  <%= f.button class: "btn-success btn-lg w-full py-4" do %><%= icon "check", class: "size-5" %> Delivered<% end %>
+<% end %>
+<%= form_with url: m_drop_path(@drop), method: :patch, class: "flex gap-2", data: { controller: "outbox-form", outbox_form_kind_value: "drop", outbox_form_back_value: m_route_path, action: "submit->outbox-form#submit" } do |f| %>
+  <%= hidden_field_tag :delivery_id, @drop.id %><%= f.hidden_field :client_uuid, value: SecureRandom.uuid, data: { outbox_form_target: "uuid" } %>
+  <%= f.select :failed_reason, ["Shop closed", "Customer refused", "Wrong address", "Payment not ready"], {}, class: "input-lg flex-1" %>
+  <%= f.button "Not delivered", class: "btn-danger" %>
+<% end %>
+<% end %>

@@ -1,0 +1,10 @@
+<% open = customer.open_invoices %>
+<div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+  <div class="flex justify-between"><span class="text-slate-500">Balance</span><%= balance_tag customer.balance_paise %></div>
+  <% if open.any? %>
+    <ul class="mt-2 space-y-1 text-xs">
+      <% open.first(6).each do |i| %><li class="flex justify-between"><span><%= i.number %> · <%= short_d i.invoice_date %> <% if i.overdue? %><span class="text-rose-600"><%= i.days_overdue %>d late</span><% end %></span><span class="tnum"><%= inr i.outstanding_paise %></span></li><% end %>
+      <% if open.size > 6 %><li class="text-slate-400">+<%= open.size - 6 %> more</li><% end %>
+    </ul>
+  <% end %>
+</div>

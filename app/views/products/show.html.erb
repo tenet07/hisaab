@@ -1,0 +1,24 @@
+<% content_for :title, @product.display_name %>
+<% p = @product %>
+<div class="mb-2"><%= link_to "← Products", products_path, class: "text-sm text-slate-500 hover:text-slate-800" %></div>
+<%= page_header p.display_name, "#{p.sku} · HSN #{p.hsn} · GST #{p.gst_rate.to_f}% · warranty #{p.effective_warranty_months} months" do %>
+  <% if can?(:products_edit) %><%= link_to "Edit", edit_product_path(p), class: "btn" %><% end %>
+<% end %>
+<div class="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
+  <% @buckets.each do |b, q| %><%= stat_tile StockMovement::BUCKET_LABELS[b], q, tone: (b == "sellable" && q <= p.reorder_level ? "text-amber-700" : nil) %><% end %>
+  <%= stat_tile "Sold, 90 days", @sold_90, sub: "reorder at #{p.reorder_level}" %>
+</div>
+<div class="card overflow-x-auto">
+  <div class="card-head"><h2 class="card-title">Stock ledger</h2><span class="text-xs text-slate-500">Every piece in or out, with who and why</span></div>
+  <table class="table">
+    <thead><tr><th>When</th><th>Bucket</th><th>Reason</th><th>Document</th><th>By</th><th class="num">Qty</th></tr></thead>
+    <tbody>
+      <% @movements.each do |m| %>
+        <tr><td class="text-slate-500 whitespace-nowrap"><%= dt m.created_at %></td><td><%= bucket_badge m.bucket %></td><td><%= m.reason.humanize %><% if m.note.present? %><span class="text-xs text-slate-500"> · <%= m.note %></span><% end %></td>
+          <td><%= m.document.respond_to?(:number) && m.document.number ? (link_to(m.document.number, m.document, class: "link") rescue m.document.number) : m.document&.model_name&.human %></td>
+          <td class="text-xs text-slate-400" title="<%= m.device %>"><%= m.user&.name %></td>
+          <td class="num font-medium <%= m.quantity.positive? ? 'text-emerald-700' : 'text-slate-700' %>"><%= m.quantity.positive? ? "+#{m.quantity}" : m.quantity %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

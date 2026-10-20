@@ -1,0 +1,65 @@
+<% content_for :title, "Order queue" %>
+<%= page_header "Order queue", "WhatsApp, salesman and counter orders land here. Check, confirm, bill." do %>
+  <%= link_to new_order_path, class: "btn-primary" do %><%= icon "plus", class: "size-4" %> New order<% end %>
+<% end %>
+
+<div class="grid gap-5 xl:grid-cols-[1fr_360px]">
+  <div>
+    <div class="mb-3 flex flex-wrap items-center gap-2">
+      <div class="tabs flex-1">
+        <% { "open" => "Open", "invoiced" => "Billed", "cancelled" => "Cancelled", "all" => "All" }.each do |k, v| %>
+          <%= link_to v, orders_path(tab: k, channel: params[:channel]), class: ["tab", ("active" if @tab == k)] %>
+        <% end %>
+      </div>
+      <div class="flex gap-1">
+        <%= link_to "All channels", orders_path(tab: @tab), class: ["btn-sm btn", ("!bg-slate-900 !text-white" if params[:channel].blank?)] %>
+        <% Order::CHANNELS.each do |ch| %>
+          <%= link_to orders_path(tab: @tab, channel: ch), class: ["btn-sm btn", ("!bg-slate-900 !text-white" if params[:channel] == ch)] do %><%= ch.capitalize %> <% if @counts[ch].to_i.positive? %><span class="tnum opacity-70"><%= @counts[ch] %></span><% end %><% end %>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="space-y-2.5">
+      <% @orders.each do |o| %>
+        <%= link_to o, class: "card block p-4 transition hover:border-brand-300 hover:shadow-md" do %>
+          <div class="flex items-start gap-3">
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-semibold text-slate-900"><%= o.customer.shop_name %></span>
+                <%= channel_badge o.channel %> <%= status_badge o.status %>
+                <% if o.editable? && o.needs_review? %><span class="badge-amber"><%= icon "alert", class: "size-3" %> Check lines</span><% end %>
+              </div>
+              <% if o.raw_message.present? %>
+                <div class="mt-2 max-w-xl rounded-lg rounded-tl-none bg-[#e7f8ee] px-3 py-2 text-sm text-slate-800">“<%= truncate(o.raw_message, length: 180) %>”</div>
+              <% end %>
+              <div class="mt-2 text-sm text-slate-600">
+                <%= o.lines.map { |l| "#{l.product&.display_name || '❓ ' + l.source_text.to_s} × #{l.quantity}" }.join(" · ").presence || "No lines yet" %>
+              </div>
+            </div>
+            <div class="shrink-0 text-right">
+              <div class="font-semibold tnum text-slate-900"><%= inr0 o.estimate_paise %></div>
+              <div class="mt-0.5 text-xs text-slate-500"><%= o.number %></div>
+              <div class="text-xs text-slate-400"><%= time_ago_in_words(o.created_at) %> ago</div>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+      <% if @orders.empty? %><div class="card"><%= empty_state("No orders here. New WhatsApp orders appear automatically.") %></div><% end %>
+    </div>
+  </div>
+
+  <div class="card h-fit">
+    <div class="card-head"><h2 class="card-title flex items-center gap-2"><%= icon "sparkles", class: "size-4 text-violet-500" %> Paste an order</h2></div>
+    <%= form_with url: parse_orders_path, class: "space-y-3 p-5" do |f| %>
+      <%= catalog_script "customer-catalog", customer_catalog_json %>
+      <div class="field"><label class="label">Customer</label><%= combobox name: "customer_id", source: "customer-catalog", placeholder: "Shop name, code or phone…" %></div>
+      <div class="field">
+        <label class="label">Message</label>
+        <%= f.text_area :raw_message, rows: 5, class: "input", placeholder: "Philips 9W bulb 50 pc, 20W batten 10" %>
+        <p class="hint">Hindi, Marathi or English, any order. AI turns it into lines; you check and confirm with one tap.</p>
+      </div>
+      <%= f.hidden_field :channel, value: "whatsapp" %>
+      <%= f.submit "Make draft order", class: "btn-primary w-full" %>
+    <% end %>
+  </div>
+</div>

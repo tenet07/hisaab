@@ -1,0 +1,21 @@
+<% content_for :title, "Replacements" %>
+<%= page_header "Replacements", "Defective pieces brought back, and where each one is now." do %>
+  <%= link_to new_replacement_path, class: "btn-primary" do %><%= icon "plus", class: "size-4" %> New replacement<% end %>
+<% end %>
+<div class="mb-4 flex flex-wrap gap-1.5">
+  <%= link_to "All", replacements_path, class: ["btn btn-sm", ("!bg-slate-900 !text-white" if params[:status].blank?)] %>
+  <% Replacement::CLAIM_STATUSES.each do |s| %><%= link_to replacements_path(status: s), class: ["btn btn-sm", ("!bg-slate-900 !text-white" if params[:status] == s)] do %><%= s.humanize %> <span class="opacity-60 tnum"><%= @counts[s].to_i %></span><% end %><% end %>
+</div>
+<div class="card overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Ref</th><th>Date</th><th>Customer</th><th>Item</th><th>Warranty</th><th>Outcome</th><th>Where it is</th><th>Claim</th></tr></thead>
+    <tbody>
+      <% @replacements.each do |r| %>
+        <tr><td><%= link_to r.number, r, class: "font-medium text-brand-700 hover:underline" %></td><td class="text-slate-500"><%= short_d r.created_at %></td><td><%= r.customer.shop_name %></td><td><%= r.product.display_name %></td>
+          <td><%= r.warranty_valid ? tag.span("Valid", class: "badge-green") : tag.span("No", class: "badge-gray") %></td><td class="text-slate-600"><%= r.outcome.humanize %></td>
+          <td><%= status_badge r.claim_status %></td><td><%= r.brand_claim ? link_to(r.brand_claim.number, r.brand_claim, class: "link text-xs") : "—" %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% if @replacements.empty? %><%= empty_state "No replacements here." %><% end %>
+</div>

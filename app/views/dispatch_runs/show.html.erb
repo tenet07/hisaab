@@ -1,0 +1,57 @@
+<% content_for :title, "#{@run.market.name} route" %>
+<% run = @run %>
+<div class="mb-2 no-print"><%= link_to "← Dispatch", dispatch_runs_path(date: run.run_date), class: "text-sm text-slate-500 hover:text-slate-800" %></div>
+<%= page_header "#{run.market.name} · #{run.run_date.strftime('%a %d %b')}", "#{run.deliveries.size} drops · #{inr0 run.deliveries.sum { _1.invoice.total_paise }}" do %>
+  <%= status_badge run.status %>
+  <button class="btn no-print" onclick="window.print()"><%= icon "printer", class: "size-4" %> Route sheet</button>
+  <% if run.status == "planned" && run.deliveries.any? %><%= button_to "Start · send OTPs", start_dispatch_run_path(run), class: "btn-primary", form: { data: { turbo_confirm: "Mark out for delivery and WhatsApp each customer their OTP?" } } %><% end %>
+  <% if run.status == "out" %><%= button_to "Close run", finish_dispatch_run_path(run), class: "btn" %><% end %>
+<% end %>
+<div class="grid gap-5 xl:grid-cols-[1fr_340px]">
+  <div class="card overflow-x-auto" data-controller="sortable" data-sortable-url-value="<%= dispatch_run_path(run) %>">
+    <table class="table">
+      <thead><tr><th class="w-8">#</th><th>Customer</th><th>Invoice</th><th class="num">Amount</th><th class="num">Due now</th><th>Status</th><th class="no-print"></th></tr></thead>
+      <tbody data-sortable-target="list">
+        <% run.deliveries.each_with_index do |dl, i| %>
+          <% inv = dl.invoice %>
+          <tr data-id="<%= dl.id %>">
+            <td class="text-slate-400"><span class="no-print mr-1 cursor-grab" data-action="mousedown->sortable#grab" title="Drag to reorder">⋮⋮</span><%= i + 1 %></td>
+            <td><div class="font-medium"><%= inv.customer.shop_name %></div><div class="text-xs text-slate-500"><%= inv.customer.address %> · <%= inv.customer.display_phone %></div></td>
+            <td><%= link_to inv.number, inv, class: "link" %><% if inv.eway_bill_no %><div class="text-xs text-slate-500">EWB <%= inv.eway_bill_no %></div><% end %></td>
+            <td class="num"><%= inr0 inv.total_paise %></td><td class="num"><%= inr0 inv.customer.balance_paise %></td>
+            <td><%= status_badge dl.status %><% if dl.proof %><div class="text-xs text-slate-500"><%= dl.proof == "otp" ? "OTP ✓" : "Photo" %> · <%= dl.delivered_at&.strftime("%I:%M %p") %></div><% end %>
+              <% if dl.photo.attached? %><%= link_to "photo", url_for(dl.photo), class: "link text-xs", target: "_blank" %><% end %></td>
+            <td class="no-print">
+              <% unless dl.done? %>
+                <details class="relative"><summary class="btn-ghost btn-sm list-none">⋯</summary>
+                  <div class="absolute right-0 z-10 mt-1 w-64 space-y-2 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+                    <%= form_with url: delivery_path(dl), method: :patch, class: "flex gap-2" do |f| %><%= f.text_field :otp, class: "input", placeholder: "OTP from customer", inputmode: "numeric" %><%= f.submit "Deliver", class: "btn-success" %><% end %>
+                    <%= form_with url: delivery_path(dl), method: :patch, class: "flex gap-2" do |f| %><%= f.text_field :failed_reason, class: "input", placeholder: "Why not delivered" %><%= f.submit "Failed", class: "btn-danger" %><% end %>
+                    <%= button_to "Remove from route", remove_dispatch_run_path(run, delivery_id: dl.id), method: :delete, class: "btn w-full" %>
+                    <% if Current.user.owner? %><div class="text-xs text-slate-400">OTP <%= dl.otp_code %></div><% end %>
+                  </div></details>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    <% if run.deliveries.empty? %><%= empty_state "No drops yet — add billed invoices from the right." %><% end %>
+  </div>
+  <div class="no-print space-y-4">
+    <%= form_with model: run, class: "card-pad space-y-3" do |f| %>
+      <div class="field"><label class="label">Delivery person</label><%= f.select :delivery_person_id, User.active.with_role("delivery").map { [_1.name, _1.id] }, { include_blank: "—" }, class: "input" %></div>
+      <div class="field"><label class="label">Vehicle</label><%= f.text_field :vehicle, class: "input" %></div>
+      <%= f.submit "Save", class: "btn w-full" %>
+    <% end %>
+    <%= form_with url: add_dispatch_run_path(run), class: "card" do |f| %>
+      <div class="card-head"><h2 class="card-title">Billed, not loaded (<%= @available.size %>)</h2></div>
+      <ul class="max-h-96 divide-y divide-slate-100 overflow-y-auto text-sm">
+        <% @available.each do |inv| %>
+          <li class="flex items-center gap-3 px-5 py-2"><%= check_box_tag "invoice_ids[]", inv.id, true, id: nil %><div class="flex-1"><div><%= inv.customer.shop_name %></div><div class="text-xs text-slate-500"><%= inv.number %> · <%= short_d inv.invoice_date %><%= " · needs EWB" if inv.eway_required && inv.eway_bill_no.blank? %></div></div><span class="tnum"><%= inr0 inv.total_paise %></span></li>
+        <% end %>
+      </ul>
+      <% if @available.any? %><div class="border-t border-slate-100 p-3"><%= f.submit "Load ticked onto route", class: "btn-primary w-full" %></div><% end %>
+    <% end %>
+  </div>
+</div>

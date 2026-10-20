@@ -1,0 +1,7 @@
+<% content_for :title, "Bill #{@purchase.bill_no}" %>
+<%= page_header "Purchase #{@purchase.bill_no}", "#{@purchase.supplier.name} · #{d @purchase.bill_date}" %>
+<div class="card overflow-x-auto">
+  <table class="table"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Cost</th><th class="num">Taxable</th><th class="num">GST</th></tr></thead>
+    <tbody><% @purchase.lines.includes(:product).each do |l| %><tr><td><%= link_to l.product.display_name, l.product, class: "hover:underline" %></td><td class="num"><%= l.quantity %></td><td class="num"><%= inr l.rate_paise %></td><td class="num"><%= inr l.taxable_paise %></td><td class="num"><%= inr l.tax_paise %></td></tr><% end %></tbody>
+    <tfoot class="border-t border-slate-200 font-semibold"><tr><td colspan="4" class="px-4 py-2 text-right">Total</td><td class="num px-4 py-2"><%= inr @purchase.total_paise %></td></tr></tfoot></table>
+</div>

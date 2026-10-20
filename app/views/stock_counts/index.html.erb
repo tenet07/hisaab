@@ -1,0 +1,9 @@
+<% content_for :title, "Stock counts" %>
+<%= page_header "Stock counts", "Rotating monthly count: #{@due} products are due this month (every product once each #{StockCount::CYCLE_MONTHS} months)." do %>
+  <%= link_to "Start this month's count", new_stock_count_path, class: "btn-primary" %>
+<% end %>
+<div class="card overflow-x-auto">
+  <table class="table"><thead><tr><th>Date</th><th>By</th><th class="num">Products</th><th class="num">Differences</th><th>Status</th></tr></thead>
+    <tbody><% @counts.each do |c| %><tr><td><%= link_to d(c.count_date), c, class: "link" %></td><td><%= c.counted_by&.name %></td><td class="num"><%= c.lines.size %></td><td class="num"><%= c.variance_lines.size %></td><td><%= status_badge c.status %></td></tr><% end %></tbody></table>
+  <% if @counts.empty? %><%= empty_state "No counts yet." %><% end %>
+</div>

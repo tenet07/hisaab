@@ -1,0 +1,17 @@
+<% content_for :title, "Broadcasts" %>
+<%= page_header "Market broadcasts", "New stock and offers to customers who opted in. Sent as a WhatsApp marketing template." do %>
+  <%= link_to new_whatsapp_broadcast_path, class: "btn-primary" do %><%= icon "megaphone", class: "size-4" %> New broadcast<% end %>
+<% end %>
+<div class="card">
+  <table class="table">
+    <thead><tr><th>Title</th><th>Markets</th><th>Status</th><th class="num">Recipients</th><th>Sent</th></tr></thead>
+    <tbody>
+      <% @broadcasts.each do |b| %>
+        <tr><td><%= link_to b.title, whatsapp_broadcast_path(b), class: "font-medium hover:underline" %></td>
+          <td class="text-slate-500"><%= b.market_ids.any? ? Market.where(id: b.market_ids).pluck(:name).join(", ") : "All markets" %></td>
+          <td><%= status_badge b.status %></td><td class="num"><%= b.recipients %></td><td class="text-slate-500"><%= dt b.sent_at %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% if @broadcasts.empty? %><%= empty_state "No broadcasts yet." %><% end %>
+</div>

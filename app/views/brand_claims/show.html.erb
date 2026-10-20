@@ -1,0 +1,51 @@
+<% content_for :title, @claim.number %>
+<% c = @claim %>
+<%= page_header "#{c.brand.name} claim #{c.number}", "#{c.pieces} pieces · expected value at cost #{inr0 c.expected_paise}" do %>
+  <%= c.flagged? ? tag.span("No response for #{c.days_out} days", class: "badge-red") : status_badge(c.status) %>
+  <%= link_to challan_brand_claim_path(c), class: "btn", target: "_blank" do %><%= icon "printer", class: "size-4" %> Challan<% end %>
+<% end %>
+<div class="grid gap-5 xl:grid-cols-[1fr_340px]">
+  <%= form_with url: settle_brand_claim_path(c), class: "card overflow-x-auto", data: { turbo_confirm: "Record this settlement?" } do |f| %>
+    <table class="table">
+      <thead><tr><th>Ref</th><th>Item</th><th>Customer</th><th>Defect</th><th>Status</th><% if c.sent? %><th>Brand's answer</th><th class="!text-right">Credit ₹</th><% end %></tr></thead>
+      <tbody>
+        <% c.replacements.includes(:product, :customer).each do |r| %>
+          <tr><td><%= link_to r.number, r, class: "link" %></td><td><%= r.product.display_name %></td><td class="text-slate-500"><%= r.customer.shop_name %></td><td class="text-slate-500"><%= r.defect %></td>
+            <td><%= status_badge r.claim_status %><% if r.credited_paise.positive? %> <span class="text-xs tnum"><%= inr0 r.credited_paise %></span><% end %></td>
+            <% if c.sent? %>
+              <% if r.open? %>
+                <td><%= select_tag "outcomes[#{r.id}][result]", options_for_select([["Still with brand", ""], ["Replacement piece received", "replaced"], ["Credited", "credited"], ["Rejected", "rejected"]]), class: "input" %></td>
+                <td class="w-32"><%= number_field_tag "outcomes[#{r.id}][amount]", (r.product.purchase_paise / 100.0), step: "0.01", class: "input text-right" %></td>
+              <% else %><td colspan="2"></td><% end %>
+            <% end %></tr>
+        <% end %>
+      </tbody>
+    </table>
+    <% if c.sent? %>
+      <div class="flex flex-wrap items-end justify-end gap-3 border-t border-slate-100 p-3">
+        <div><label class="label">Brand credit note ref</label><%= f.text_field :credit_note_ref, class: "input" %></div>
+        <div><label class="label">Date</label><%= f.date_field :settled_on, value: Date.current, class: "input" %></div>
+        <%= f.submit "Record settlement", class: "btn-primary" %>
+      </div>
+      <p class="px-4 pb-3 text-xs text-slate-500">Partial is fine — pieces left as “still with brand” stay open. Rejected pieces come back and go to the owner for write-off.</p>
+    <% end %>
+  <% end %>
+  <div class="space-y-4">
+    <% if c.status == "open" %>
+      <%= form_with url: send_claim_brand_claim_path(c), class: "card-pad space-y-3" do |f| %>
+        <div class="card-title">Send to <%= c.brand.name %></div>
+        <%= f.text_field :challan_no, class: "input", placeholder: "Challan no.", required: true %>
+        <%= f.date_field :sent_on, value: Date.current, class: "input" %>
+        <%= f.submit "Mark sent", class: "btn-primary w-full" %>
+        <p class="hint">Moves pieces from “awaiting claim” to “with brand”.</p>
+      <% end %>
+    <% end %>
+    <div class="card-pad space-y-1.5 text-sm">
+      <div class="flex justify-between"><span class="text-slate-500">Challan</span><span><%= c.challan_no || "—" %></span></div>
+      <div class="flex justify-between"><span class="text-slate-500">Sent</span><span><%= d(c.sent_on) || "—" %></span></div>
+      <div class="flex justify-between"><span class="text-slate-500">Credit notes</span><span><%= c.credit_note_ref || "—" %></span></div>
+      <div class="flex justify-between"><span class="text-slate-500">Credited</span><span class="tnum"><%= inr c.credited_paise %></span></div>
+      <div class="flex justify-between"><span class="text-slate-500">Brand contact</span><span><%= c.brand.claim_contact %></span></div>
+    </div>
+  </div>
+</div>

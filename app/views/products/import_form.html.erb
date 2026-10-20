@@ -1,0 +1,7 @@
+<% content_for :title, "Import products" %>
+<%= page_header "Import products", "Adds new SKUs and updates existing ones. Opening stock posts as an “opening” movement." %>
+<%= form_with url: import_products_path, multipart: true, class: "card-pad max-w-2xl space-y-4" do |f| %>
+  <div class="rounded-lg bg-slate-50 p-3 font-mono text-xs text-slate-600">brand, sku, name, model, wattage, hsn, gst_rate, mrp, wholesale, retail, purchase, reorder_level, warranty_months, aliases, opening_stock</div>
+  <%= f.file_field :file, accept: ".csv", required: true, class: "input" %>
+  <%= f.submit "Import", class: "btn-primary" %>
+<% end %>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <title><%= [content_for(:title), shop.name].compact.join(" · ") %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="#3b55e6">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+    <%= yield :head %>
+  </head>
+  <body class="h-full" data-controller="palette hotkeys" data-action="keydown@window->palette#keydown keydown@window->hotkeys#keydown">
+    <div class="flex min-h-full">
+      <aside class="no-print fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-slate-200 bg-slate-50/95 backdrop-blur lg:flex" id="sidebar">
+        <div class="flex items-center gap-2.5 px-4 pt-4 pb-3">
+          <img src="/icon.svg" alt="" class="size-8 rounded-lg shadow-sm">
+          <div class="min-w-0">
+            <div class="truncate text-sm font-semibold text-slate-900"><%= shop.name %></div>
+            <div class="text-[11px] text-slate-500">Hisaab · Shop OS</div>
+          </div>
+        </div>
+        <button type="button" data-action="palette#open" class="mx-3 mb-1 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-left text-[13px] text-slate-400 shadow-xs hover:border-slate-300">
+          <%= icon "search", class: "size-4" %><span class="flex-1">Search or jump to…</span><span class="kbd">⌘K</span>
+        </button>
+        <nav class="flex-1 overflow-y-auto px-2 pb-4">
+          <% u = Current.user %>
+          <% pending_orders = Order.open.count %>
+          <% approvals = u.owner? ? Approval.pending.count : 0 %>
+          <% if u.can?(:dashboard) %><%= nav_link "Home", root_path, icon: "home" %><% end %>
+          <% if u.can?(:orders) %><%= nav_link "Order queue", orders_path, icon: "inbox", match: %r{^/orders}, badge: pending_orders %><% end %>
+          <% if u.can?(:invoice_post) %><%= nav_link "Counter bill", counter_path, icon: "bolt", match: %r{^/counter} %><% end %>
+          <% if u.owner? %><%= nav_link "Approvals", approvals_path, icon: "check-circle", match: %r{^/approvals}, badge: approvals %><% end %>
+
+          <div class="nav-section">Sales & money</div>
+          <% if u.can?(:invoices) %><%= nav_link "Invoices", invoices_path, icon: "doc", match: %r{^/invoices} %><% end %>
+          <% if u.can?(:credit_notes) %><%= nav_link "Credit notes", credit_notes_path, icon: "doc", match: %r{^/credit_notes} %><% end %>
+          <% if u.can?(:payments) %><%= nav_link "Payments", payments_path, icon: "rupee", match: %r{^/payments} %><% end %>
+          <% if u.can?(:customers) %><%= nav_link "Customers", customers_path, icon: "users", match: %r{^/customers} %><% end %>
+
+          <div class="nav-section">Stock</div>
+          <% if u.can?(:stock) || u.can?(:stock_lookup) %><%= nav_link "Stock", stock_path, icon: "cube", match: %r{^/stock$|^/stock/m} %><% end %>
+          <% if u.can?(:products) %><%= nav_link "Products", products_path, icon: "list", match: %r{^/products} %><% end %>
+          <% if u.can?(:purchases) %><%= nav_link "Purchases", purchases_path, icon: "cart", match: %r{^/purchases|^/suppliers} %><% end %>
+          <% if u.can?(:counts) %><%= nav_link "Stock counts", stock_counts_path, icon: "clipboard", match: %r{^/stock_counts} %><% end %>
+
+          <div class="nav-section">After-sales</div>
+          <% if u.can?(:replacements) %><%= nav_link "Replacements", replacements_path, icon: "swap", match: %r{^/replacements} %><% end %>
+          <% if u.can?(:claims) %><%= nav_link "Brand claims", brand_claims_path, icon: "shield", match: %r{^/brand_claims}, badge: BrandClaim.unsettled.to_a.count(&:flagged?) %><% end %>
+
+          <% if u.can?(:dispatch) || u.can?(:whatsapp) %><div class="nav-section">Field & WhatsApp</div><% end %>
+          <% if u.can?(:dispatch) %><%= nav_link "Dispatch", dispatch_runs_path, icon: "truck", match: %r{^/dispatch_runs} %><% end %>
+          <% if u.can?(:whatsapp) %><%= nav_link "WhatsApp", whatsapp_messages_path, icon: "chat", match: %r{^/whatsapp/messages} %><% end %>
+          <% if u.owner? %><%= nav_link "Broadcasts", whatsapp_broadcasts_path, icon: "megaphone", match: %r{^/whatsapp/broadcasts} %><% end %>
+
+          <% if u.can?(:reports) %>
+            <div class="nav-section">Books</div>
+            <%= nav_link "Reports & GST", reports_path, icon: "chart", match: %r{^/reports} %>
+            <% if u.can?(:audit) %><%= nav_link "Audit trail", audit_events_path, icon: "eye", match: %r{^/audit_events} %><% end %>
+          <% end %>
+          <% if u.owner? %><%= nav_link "Settings", settings_path, icon: "cog", match: %r{^/settings|^/users|^/markets|^/brands} %><% end %>
+        </nav>
+        <div class="flex items-center gap-2.5 border-t border-slate-200 px-4 py-3">
+          <div class="grid size-8 place-items-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700"><%= u.initials %></div>
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-[13px] font-medium text-slate-800"><%= u.name %></div>
+            <div class="text-[11px] text-slate-500"><%= u.role_label %></div>
+          </div>
+          <%= button_to session_path, method: :delete, class: "btn-ghost p-1.5", title: "Sign out", form: { data: { turbo: false } } do %><%= icon "logout", class: "size-4" %><% end %>
+        </div>
+      </aside>
+
+      <div class="flex min-w-0 flex-1 flex-col lg:pl-60">
+        <header class="no-print sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-4 py-2.5 backdrop-blur lg:hidden">
+          <img src="/icon.svg" alt="" class="size-7 rounded-md">
+          <span class="flex-1 truncate text-sm font-semibold"><%= shop.name %></span>
+          <button type="button" class="btn-ghost p-1.5" data-action="palette#open"><%= icon "search", class: "size-5" %></button>
+          <details class="relative">
+            <summary class="btn-ghost list-none p-1.5"><%= icon "list", class: "size-5" %></summary>
+            <div class="absolute right-0 mt-2 max-h-[80vh] w-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-lg" data-controller="clone" data-clone-source-value="#sidebar nav"></div>
+          </details>
+        </header>
+        <div id="flash" class="no-print"><%= render "shared/flash" %></div>
+        <main class="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <%= yield %>
+        </main>
+      </div>
+    </div>
+    <%= render "shared/palette" %>
+  </body>
+</html>

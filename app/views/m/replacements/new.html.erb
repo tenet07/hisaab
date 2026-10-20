@@ -1,0 +1,18 @@
+<% content_for :title, "Replacement" %>
+<% content_for :subtitle, @customer.shop_name %>
+<% content_for :back, m_customer_path(@customer) %>
+<%= catalog_script "product-catalog", product_catalog_json %>
+<%= form_with url: m_replacements_path, class: "space-y-3", data: { controller: "outbox-form warranty", outbox_form_kind_value: "replacement", outbox_form_back_value: m_customer_path(@customer), action: "submit->outbox-form#submit" } do |f| %>
+  <%= hidden_field_tag :customer_id, @customer.id %>
+  <%= hidden_field_tag :invoice_id, nil, data: { warranty_target: "invoice" } %>
+  <%= f.hidden_field :client_uuid, value: SecureRandom.uuid, data: { outbox_form_target: "uuid" } %>
+  <div class="rounded-2xl bg-white p-3 shadow-xs ring-1 ring-slate-200"><%= combobox name: "product_id", source: "product-catalog", placeholder: "Defective item", extra_action: "combobox:picked->warranty#check", input_class: "input-lg" %></div>
+  <div data-warranty-target="result" class="hidden rounded-2xl border p-4 text-sm"></div>
+  <%= f.select :defect, ["Not glowing", "Flickering", "Burnt driver", "Body broken", "Humming / noise", "Not running", "Other"], {}, class: "input-lg" %>
+  <div class="grid grid-cols-3 gap-2">
+    <% [["swapped", "Swapped"], ["charged", "Bill new"], ["returned", "Returned"]].each_with_index do |(v, l), i| %>
+      <label class="cursor-pointer rounded-2xl bg-white py-4 text-center text-sm font-semibold ring-1 ring-slate-200 has-[:checked]:bg-amber-500 has-[:checked]:text-white"><%= radio_button_tag :outcome, v, i.zero?, class: "sr-only", data: { warranty_target: "outcome" } %><%= l %></label>
+    <% end %>
+  </div>
+  <%= f.button class: "btn-lg w-full bg-amber-500 py-4 font-semibold text-white rounded-xl" do %>Log replacement<% end %>
+<% end %>

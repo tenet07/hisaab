@@ -1,0 +1,12 @@
+<% content_for :title, @broadcast.title %>
+<%= page_header @broadcast.title, @broadcast.sent? ? "Sent #{dt @broadcast.sent_at} to #{@broadcast.recipients} customers" : "Draft" do %>
+  <% unless @broadcast.sent? %><%= button_to "Send to #{@broadcast.audience.count} customers", deliver_whatsapp_broadcast_path(@broadcast), class: "btn-success", form: { data: { turbo_confirm: "Send this offer now?" } } %><% end %>
+<% end %>
+<div class="grid gap-5 lg:grid-cols-2">
+  <div class="card-pad bg-[#efeae2]"><div class="max-w-md rounded-lg rounded-tr-none bg-[#d9fdd3] px-3 py-2 text-sm whitespace-pre-line shadow-xs"><b><%= @broadcast.title %></b>
+<%= @broadcast.body %>
+
+<span class="text-xs text-slate-500">Reply STOP to opt out</span></div></div>
+  <div class="card"><div class="card-head"><h2 class="card-title">Audience</h2></div>
+    <ul class="max-h-96 divide-y divide-slate-100 overflow-y-auto text-sm"><% @broadcast.audience.includes(:market).each do |c| %><li class="flex justify-between px-5 py-2"><span><%= c.shop_name %></span><span class="text-slate-500"><%= c.market&.name %></span></li><% end %></ul></div>
+</div>

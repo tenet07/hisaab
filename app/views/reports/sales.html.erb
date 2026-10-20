@@ -1,0 +1,18 @@
+<% content_for :title, "Sales" %>
+<%= page_header "Sales", "#{d @from} – #{d @to}" do %><%= link_to "CSV", sales_report_path(format: :csv, from: @from, to: @to), class: "btn" %><% end %>
+<%= render "range" %>
+<div class="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+  <%= stat_tile "Sales (incl. GST)", inr0(@total) %><%= stat_tile "Taxable", inr0(@taxable) %>
+  <% if @margin %><%= stat_tile "Gross margin", inr0(@margin), sub: (@taxable.positive? ? "#{(@margin * 100.0 / @taxable).round(1)}% of taxable" : nil) %><% end %>
+  <%= stat_tile "Channels", @by_channel.map { "#{_1.capitalize} #{inr_compact(_2)}" }.join(" · ").presence || "—" %>
+</div>
+<div class="grid gap-5 lg:grid-cols-3">
+  <% [["By market", @by_market], ["By salesman", @by_salesman], ["By brand (taxable)", @by_brand]].each do |title, rows| %>
+    <% max = rows.map(&:last).max.to_i.nonzero? || 1 %>
+    <div class="card"><div class="card-head"><h2 class="card-title"><%= title %></h2></div>
+      <ul class="space-y-2.5 p-5 text-sm"><% rows.each do |n, v| %><li><div class="flex justify-between"><span><%= n %></span><span class="tnum font-medium"><%= inr0 v %></span></div><div class="mt-1 h-1.5 rounded-full bg-slate-100"><div class="h-full rounded-full bg-brand-500" style="width: <%= (v * 100.0 / max).round(1) %>%"></div></div></li><% end %></ul></div>
+  <% end %>
+</div>
+<div class="card mt-5 overflow-x-auto"><div class="card-head"><h2 class="card-title">Top products</h2></div>
+  <table class="table"><thead><tr><th>Product</th><th class="num">Pieces</th><th class="num">Taxable</th></tr></thead>
+    <tbody><% @top_products.each do |n, q, v| %><tr><td><%= n %></td><td class="num"><%= q %></td><td class="num"><%= inr0 v %></td></tr><% end %></tbody></table></div>

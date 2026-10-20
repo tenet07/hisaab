@@ -1,0 +1,27 @@
+<% content_for :title, "Payments" %>
+<%= page_header "Payments", "Cash, UPI, cheque and bank receipts." do %>
+  <%= link_to new_payment_path, class: "btn-primary" do %><%= icon "plus", class: "size-4" %> Record payment<% end %>
+<% end %>
+<div class="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+  <% Payment::MODES.each do |k, label| %><%= stat_tile label, inr0(@by_mode[k].to_i) %><% end %>
+</div>
+<%= form_with url: payments_path, method: :get, class: "card mb-4 flex flex-wrap items-end gap-3 p-3" do |f| %>
+  <div><label class="label">From</label><%= f.date_field :from, value: params[:from], class: "input" %></div>
+  <div><label class="label">To</label><%= f.date_field :to, value: params[:to], class: "input" %></div>
+  <div><label class="label">Mode</label><%= f.select :mode, Payment::MODES.invert.to_a, { include_blank: "All", selected: params[:mode] }, class: "input" %></div>
+  <div><label class="label">Collected by</label><%= f.select :user_id, User.active.map { [_1.name, _1.id] }, { include_blank: "Anyone", selected: params[:user_id] }, class: "input" %></div>
+  <%= f.submit "Filter", class: "btn" %>
+<% end %>
+<div class="card overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Receipt</th><th>Date</th><th>Customer</th><th>Mode</th><th>Reference</th><th>Collected by</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      <% @payments.each do |p| %>
+        <tr class="<%= 'opacity-60' if p.bounced? %>"><td><%= link_to p.number, p, class: "font-medium text-brand-700 hover:underline" %> <% if p.bounced? %><span class="badge-red">Bounced</span><% end %></td>
+          <td class="text-slate-500"><%= d p.received_on %></td><td><%= p.customer.shop_name %></td><td><%= p.mode_label %></td>
+          <td class="text-slate-500"><%= p.reference %></td><td class="text-slate-500"><%= p.collected_by&.name %></td><td class="num font-medium"><%= inr p.amount_paise %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% if @payments.empty? %><%= empty_state "No payments match." %><% end %>
+</div>

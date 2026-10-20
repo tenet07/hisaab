@@ -1,0 +1,35 @@
+<div class="flex min-h-full items-center justify-center px-4 py-12">
+  <div class="w-full max-w-sm">
+    <div class="mb-8 text-center">
+      <img src="/icon.svg" alt="" class="mx-auto size-14 rounded-2xl shadow-lg shadow-brand-600/30">
+      <h1 class="mt-4 text-2xl font-semibold tracking-tight text-slate-900"><%= shop.name %></h1>
+      <p class="mt-1 text-sm text-slate-500">Sign in to Hisaab</p>
+    </div>
+    <div class="card-pad shadow-lg">
+      <%= form_with url: session_path, class: "space-y-4", data: { turbo: false } do |form| %>
+        <div class="field">
+          <%= form.label :email_address, "Email", class: "label" %>
+          <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", class: "input-lg", value: params[:email_address] %>
+        </div>
+        <div class="field">
+          <div class="flex justify-between"><%= form.label :password, class: "label" %><%= link_to "Forgot?", new_password_path, class: "text-xs link" %></div>
+          <%= form.password_field :password, required: true, autocomplete: "current-password", class: "input-lg", maxlength: 72 %>
+        </div>
+        <%= form.submit "Sign in", class: "btn-primary btn-lg w-full" %>
+      <% end %>
+    </div>
+    <% if Rails.env.development? %>
+      <div class="mt-6 rounded-xl border border-dashed border-slate-300 bg-white/60 p-4 text-xs text-slate-600">
+        <div class="mb-2 font-semibold text-slate-700">Demo logins (password <code>hisaab123</code>)</div>
+        <div class="grid grid-cols-2 gap-1.5">
+          <% { "Owner" => "owner", "Accounts" => "accounts", "Counter" => "counter", "Salesman" => "amit", "Delivery" => "delivery", "CA" => "ca" }.each do |label, who| %>
+            <%= form_with url: session_path, data: { turbo: false } do |f| %>
+              <%= f.hidden_field :email_address, value: "#{who}@hisaab.test" %><%= f.hidden_field :password, value: "hisaab123" %>
+              <button class="btn w-full justify-start"><%= label %></button>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

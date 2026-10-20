@@ -1,0 +1,69 @@
+<% content_for :title, "WhatsApp" %>
+<%= page_header "WhatsApp", "Bills, receipts, reminders and orders — one thread per shop." do %>
+  <span class="badge-gray">Provider: <%= @stats[:provider] == "cloud" ? "Cloud API" : "Log only (connect in Settings)" %></span>
+  <span class="badge-gray"><%= @stats[:sent] %> sent this month · <%= inr(@stats[:cost]) %></span>
+  <% if @stats[:failed].positive? %><span class="badge-red"><%= @stats[:failed] %> failed this week</span><% end %>
+<% end %>
+<div class="card grid h-[calc(100vh-11rem)] min-h-[520px] overflow-hidden md:grid-cols-[320px_1fr]">
+  <div class="flex min-h-0 flex-col border-r border-slate-200">
+    <div class="border-b border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-medium text-slate-500">Chats</div>
+    <ul class="min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto">
+      <% @threads.each do |m| %>
+        <li>
+          <%= link_to whatsapp_messages_path(customer_id: m.customer_id), class: "flex gap-3 px-4 py-3 hover:bg-slate-50 #{'bg-[#f0f2f5]' if m.customer_id == @customer&.id}" do %>
+            <div class="grid size-10 shrink-0 place-items-center rounded-full bg-[#dfe5e7] text-sm font-semibold text-slate-600"><%= m.customer.shop_name.first %></div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline justify-between gap-2"><span class="truncate text-sm font-medium text-slate-900"><%= m.customer.shop_name %></span><span class="shrink-0 text-[11px] text-slate-400"><%= m.created_at.today? ? m.created_at.strftime("%I:%M %p") : short_d(m.created_at) %></span></div>
+              <div class="truncate text-xs text-slate-500"><%= m.outbound? ? "You: " : "" %><%= m.body.lines.first %></div>
+            </div>
+          <% end %>
+        </li>
+      <% end %>
+      <% @unknown.each do |m| %>
+        <li class="px-4 py-3 text-xs text-slate-500"><span class="badge-amber">Unknown</span> +<%= m.phone %>: <%= truncate(m.body, length: 60) %></li>
+      <% end %>
+      <% if @threads.empty? %><li class="empty">No messages yet. Post a bill to send one.</li><% end %>
+    </ul>
+  </div>
+  <div class="flex min-h-0 flex-col bg-[#efeae2]">
+    <% if @customer %>
+      <div class="flex items-center gap-3 border-b border-slate-200 bg-[#f0f2f5] px-4 py-2.5">
+        <div class="grid size-9 place-items-center rounded-full bg-[#dfe5e7] text-sm font-semibold text-slate-600"><%= @customer.shop_name.first %></div>
+        <div class="flex-1"><%= link_to @customer.shop_name, @customer, class: "text-sm font-semibold hover:underline" %><div class="text-xs text-slate-500"><%= @customer.display_phone %> · balance <%= inr @customer.balance_paise %></div></div>
+        <%= button_to "Send statement", send_statement_customer_path(@customer), class: "btn-sm btn" %>
+      </div>
+      <div class="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-4 sm:px-10" id="thread" data-controller="scroll-bottom">
+        <% @messages.each do |m| %>
+          <div class="flex <%= m.outbound? ? 'justify-end' : 'justify-start' %>">
+            <div class="max-w-[75%] rounded-lg px-3 py-1.5 text-[13.5px] shadow-xs <%= m.outbound? ? 'rounded-tr-none bg-[#d9fdd3]' : 'rounded-tl-none bg-white' %>">
+              <% if m.template %><div class="mb-0.5 text-[10px] font-medium tracking-wide text-emerald-700 uppercase"><%= m.template.humanize %> · <%= m.category %></div><% end %>
+              <% if m.payload["document_url"] %><div class="mb-1 flex items-center gap-2 rounded-md bg-black/5 px-2 py-1.5 text-xs"><%= icon "doc", class: "size-4 text-rose-500" %><%= m.payload["filename"] %></div><% end %>
+              <div class="whitespace-pre-line text-slate-800"><%= m.body %></div>
+              <div class="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-slate-500">
+                <% if m.document.is_a?(Order) %><%= link_to "Order #{m.document.number} →", m.document, class: "mr-auto text-brand-700" %><% end %>
+                <%= m.created_at.strftime("%d %b %I:%M %p") %>
+                <% if m.outbound? %><span class="<%= m.status == 'read' ? 'text-sky-500' : m.status == 'failed' ? 'text-rose-600' : '' %>" title="<%= m.error %>"><%= { "queued" => "🕓", "sent" => "✓", "delivered" => "✓✓", "read" => "✓✓", "failed" => "⚠ failed" }[m.status] %></span><% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <div class="grid gap-2 border-t border-slate-200 bg-[#f0f2f5] p-3 lg:grid-cols-2">
+        <%= form_with url: whatsapp_messages_path, class: "flex gap-2" do |f| %>
+          <%= f.hidden_field :customer_id, value: @customer.id %>
+          <%= f.text_field :body, class: "input rounded-full", placeholder: "Reply (within 24h of their message)…", autocomplete: "off" %>
+          <%= f.button "Send", class: "btn-success rounded-full" %>
+        <% end %>
+        <% if can?(:whatsapp) %>
+          <%= form_with url: whatsapp_simulate_path, class: "flex gap-2" do |f| %>
+            <%= f.hidden_field :customer_id, value: @customer.id %>
+            <%= f.text_field :body, class: "input rounded-full border-dashed", placeholder: "Test as customer: “bal” or “9w philips 50”", autocomplete: "off" %>
+            <%= f.button "Simulate", class: "btn rounded-full" %>
+          <% end %>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="m-auto text-sm text-slate-500">Pick a chat</div>
+    <% end %>
+  </div>
+</div>

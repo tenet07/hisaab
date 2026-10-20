@@ -1,0 +1,31 @@
+<%# locals: prefix:, lines: [], show_disc: true, editable_rate: true, rate_label: "Rate" %>
+<% show_disc = local_assigns.fetch(:show_disc, true); editable_rate = local_assigns.fetch(:editable_rate, true) %>
+<% row = lambda do |key, l| %>
+  <tr data-gst="<%= l[:gst] %>" class="align-top">
+    <td class="w-[44%] !py-1.5">
+      <% if l[:id] %><%= hidden_field_tag "#{prefix}[#{key}][id]", l[:id], id: nil %><%= hidden_field_tag "#{prefix}[#{key}][_destroy]", 0, id: nil %><% end %>
+      <%= combobox name: "#{prefix}[#{key}][product_id]", value: l[:product_id], label: l[:label], source: "product-catalog",
+                   placeholder: "Product, SKU or alias…", extra_action: "combobox:picked->lines#picked" %>
+      <% if l[:source_text].present? %><div class="mt-1 text-[11px] text-slate-500">from “<%= l[:source_text] %>” <% if l[:confidence] %><span class="<%= l[:confidence] < 0.75 ? 'text-amber-700 font-medium' : '' %>">· <%= (l[:confidence] * 100).round %>% sure</span><% end %></div><% end %>
+    </td>
+    <td class="!py-1.5 text-center text-xs tnum"><span data-field="stock" class="text-slate-500"><%= l[:stock] %></span></td>
+    <td class="w-24 !py-1.5"><%= number_field_tag "#{prefix}[#{key}][quantity]", l[:quantity], min: 0, step: 1, class: "input w-20 text-right tnum", id: nil, data: { field: "qty", action: "input->lines#recalc keydown->lines#qtyKey" } %></td>
+    <td class="w-32 !py-1.5"><%= number_field_tag "#{prefix}[#{key}][rate]", l[:rate], min: 0, step: "0.01", class: "input w-28 text-right tnum #{'bg-slate-50' unless editable_rate}", readonly: !editable_rate, id: nil, data: { field: "rate", action: "input->lines#recalc" } %></td>
+    <% if show_disc %><td class="w-20 !py-1.5"><%= number_field_tag "#{prefix}[#{key}][discount_pct]", l[:discount_pct], min: 0, max: 100, step: "0.5", placeholder: "0", class: "input w-20 text-right tnum", id: nil, data: { field: "disc", action: "input->lines#recalc" } %></td><% end %>
+    <td class="w-32 !py-1.5 pt-3.5 text-right font-medium tnum" data-field="amount">—</td>
+    <td class="w-8 !py-1.5"><button type="button" tabindex="-1" class="btn-ghost p-1.5 text-slate-400 hover:text-rose-600" data-action="lines#remove" title="Remove line"><%= icon "x", class: "size-4" %></button></td>
+  </tr>
+<% end %>
+<div class="overflow-x-auto">
+<table class="table">
+  <thead><tr><th>Item</th><th class="text-center">Stock</th><th class="!text-right">Qty</th><th class="!text-right"><%= local_assigns.fetch(:rate_label, "Rate") %> ₹</th><% if show_disc %><th class="!text-right">Disc %</th><% end %><th class="!text-right">Amount</th><th></th></tr></thead>
+  <tbody data-lines-target="body">
+    <% Array(local_assigns[:lines]).each_with_index { |l, i| row.call(i, l) } %>
+  </tbody>
+</table>
+</div>
+<template data-lines-target="template"><% row.call("NEW_LINE", {}) %></template>
+<div class="flex items-center justify-between border-t border-slate-100 px-4 py-2.5">
+  <button type="button" class="btn-ghost text-brand-700" data-action="lines#add"><%= icon "plus", class: "size-4" %> Add line <span class="kbd ml-1">↵</span></button>
+  <div class="text-xs text-slate-500"><span data-lines-target="count">0</span> items</div>
+</div>

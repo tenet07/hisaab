@@ -1,0 +1,22 @@
+<% content_for :title, "Reorder levels" %>
+<%= page_header "Reorder levels from sales", "Level = average daily sales × (supplier lead time + safety days). Tick and apply." %>
+<%= form_with url: reorder_products_path, method: :get, class: "card mb-4 flex flex-wrap items-end gap-3 p-3" do |f| %>
+  <div><label class="label">Sales window (days)</label><%= f.number_field :window, value: @window, class: "input w-28" %></div>
+  <div><label class="label">Lead time</label><%= f.number_field :lead, value: params[:lead] || 7, class: "input w-24" %></div>
+  <div><label class="label">Safety days</label><%= f.number_field :safety, value: params[:safety] || 7, class: "input w-24" %></div>
+  <%= f.submit "Recalculate", class: "btn" %>
+<% end %>
+<%= form_with url: apply_reorder_products_path, class: "card overflow-x-auto" do |f| %>
+  <%= hidden_field_tag :window, @window %>
+  <table class="table">
+    <thead><tr><th class="w-8"></th><th>Product</th><th class="num">Sold</th><th class="num">Per day</th><th class="num">In stock</th><th class="num">Current level</th><th class="num">Suggested</th><th class="num">Suggested order</th></tr></thead>
+    <tbody>
+      <% @rows.each do |r| %>
+        <tr><td><%= check_box_tag "product_ids[]", r[:product].id, r[:suggested] != r[:current] %></td><td><%= link_to r[:product].display_name, r[:product], class: "hover:underline" %></td>
+          <td class="num"><%= r[:sold] %></td><td class="num"><%= r[:per_day] %></td><td class="num <%= 'text-rose-600 font-medium' if r[:stock] <= r[:suggested] %>"><%= r[:stock] %></td>
+          <td class="num text-slate-500"><%= r[:current] %></td><td class="num font-medium"><%= r[:suggested] %></td><td class="num"><%= r[:order_qty].positive? ? r[:order_qty] : "—" %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+  <div class="flex justify-end border-t border-slate-100 p-3"><%= f.submit "Apply ticked levels", class: "btn-primary" %></div>
+<% end %>

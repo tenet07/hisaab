@@ -1,0 +1,7 @@
+<% content_for :title, "Brands" %>
+<%= page_header "Settings" do %><%= link_to new_brand_path, class: "btn-primary" do %><%= icon "plus", class: "size-4" %> Add brand<% end %><% end %>
+<%= render "settings/nav" %>
+<div class="card overflow-x-auto">
+  <table class="table"><thead><tr><th>Brand</th><th class="num">Warranty</th><th>Claims contact</th><th class="num">Products</th><th></th></tr></thead>
+    <tbody><% @brands.each do |b| %><tr><td class="font-medium"><%= b.name %></td><td class="num"><%= b.warranty_months %> mo</td><td class="text-slate-500"><%= b.claim_contact %></td><td class="num"><%= b.products.count %></td><td class="text-right"><%= link_to "Edit", edit_brand_path(b), class: "btn-sm btn" %></td></tr><% end %></tbody></table>
+</div>

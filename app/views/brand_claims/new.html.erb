@@ -1,0 +1,10 @@
+<% content_for :title, "New claim" %>
+<%= page_header "New #{@brand.name} claim", "Pick the pieces going in this batch." %>
+<%= form_with url: brand_claims_path, class: "card overflow-x-auto" do |f| %>
+  <%= hidden_field_tag :brand_id, @brand.id %>
+  <table class="table">
+    <thead><tr><th class="w-8"></th><th>Ref</th><th>Item</th><th>Customer</th><th>Defect</th><th>Sold</th><th>Logged</th></tr></thead>
+    <tbody><% @pieces.each do |r| %><tr><td><%= check_box_tag "replacement_ids[]", r.id, true %></td><td><%= r.number %></td><td><%= r.product.display_name %></td><td><%= r.customer.shop_name %></td><td><%= r.defect %></td><td class="text-slate-500"><%= d r.sold_on %></td><td class="text-slate-500"><%= short_d r.created_at %></td></tr><% end %></tbody>
+  </table>
+  <div class="flex justify-end border-t border-slate-100 p-3"><%= f.submit "Create claim batch", class: "btn-primary" %></div>
+<% end %>
