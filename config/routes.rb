@@ -1,5 +1,7 @@
 Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
+  get "manifest.json" => "rails/pwa#manifest", as: :pwa_manifest
+  get "service-worker.js" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   resource :session, only: %i[new create destroy]
   root "dashboard#show"

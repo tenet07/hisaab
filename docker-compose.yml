@@ -1,38 +1,25 @@
-# The whole shop server: app + Postgres + Caddy (automatic HTTPS) + nightly backups.
-#   docker compose up -d --build      start / update
-#   docker compose logs -f app        see what the app is doing
+# The whole shop server: app + Caddy (automatic HTTPS) + backups. Fits a 1 GB server.
+#   docker compose pull && docker compose up -d     start / update (deploy/update.sh does this)
+#   docker compose logs -f app                      see what the app is doing
 # Settings live in .env (made by deploy/server-setup.sh). See DEPLOY.md.
 name: shopos
 
 services:
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: shopos
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
-      POSTGRES_DB: shopos
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U shopos -d shopos"]
-      interval: 5s
-      retries: 10
-
   app:
+    # Built by GitHub Actions on every push to main (.github/workflows/image.yml).
+    # `docker compose build` builds it on the server instead, if ever needed.
+    image: ghcr.io/tenet07/hisaab:${APP_TAG:-main}
     build: .
     restart: unless-stopped
-    depends_on:
-      db: { condition: service_healthy }
     environment:
-      DATABASE_URL: postgres://shopos:${POSTGRES_PASSWORD}@db:5432/shopos
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:?set in .env}
       APP_HOST: ${APP_HOST:?set in .env}
       SETUP_CODE: ${SETUP_CODE:-}
       RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-info}
       BACKUP_DIR: /backups
     volumes:
-      - ./backups:/backups:ro
+      - storage:/rails/storage          # the shop database lives here
+      - ./backups:/backups:ro           # nightly copies, for Settings -> Backups
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:3000/up"]
       interval: 30s
@@ -50,25 +37,39 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
+  # Nightly copy into ./backups (kept 30 days).
   backup:
-    image: postgres:16-alpine
+    build: ./deploy/backup
+    user: "1000:1000"                   # same user as the app, so database files keep one owner
     restart: unless-stopped
-    depends_on:
-      db: { condition: service_healthy }
+    depends_on: [app]
     environment:
-      PGHOST: db
-      PGUSER: shopos
-      PGPASSWORD: ${POSTGRES_PASSWORD}
-      PGDATABASE: shopos
       BACKUP_AT: ${BACKUP_AT:-23:30}
       KEEP_DAYS: ${KEEP_DAYS:-30}
-      TZ: Asia/Kolkata
     volumes:
+      - storage:/rails/storage
       - ./backups:/backups
-      - ./deploy/backup.sh:/backup.sh:ro
-    entrypoint: ["/bin/sh", "/backup.sh", "loop"]
+
+  # Every change copied to Cloudflare R2 within a second. Turned on by COMPOSE_PROFILES=r2
+  # in .env once the R2 keys are filled in (DEPLOY.md step 3).
+  litestream:
+    image: litestream/litestream:0.3.13
+    profiles: [r2]
+    user: "1000:1000"
+    restart: unless-stopped
+    depends_on: [app]
+    command: replicate
+    environment:
+      R2_ENDPOINT: ${R2_ENDPOINT:-}
+      R2_BUCKET: ${R2_BUCKET:-}
+      R2_PATH: ${R2_PATH:-shop}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+    volumes:
+      - storage:/rails/storage
+      - ./deploy/litestream.yml:/etc/litestream.yml:ro
 
 volumes:
-  pgdata:
+  storage:
   caddy_data:
   caddy_config:

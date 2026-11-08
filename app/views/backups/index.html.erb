@@ -1,7 +1,7 @@
 <% content_for :title, "Backups" %>
 <%= back_link "Shop settings", edit_settings_path %>
 <header class="ph"><div><h1>Backups</h1>
-  <p class="sub">The server saves everything (bills, payments, stock, delivery photos) every night and keeps 30 days.
+  <p class="sub">The server saves everything (bills, payments, stock, delivery photos) every night and keeps 30 days, and also copies every change to Cloudflare R2 within seconds.
   Download one each week to your laptop or Google Drive so a copy lives off the server.</p></div></header>
 <% if @stale %>
 <div class="flash flash-warn" role="status"><%= icon(:alert, size: 20) %><span>

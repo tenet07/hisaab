@@ -26,10 +26,10 @@ test:
 #
 # Similarly, if you deploy your application as a Docker container, you must
 # ensure the database is located in a persisted volume.
-# Cloud server: Postgres, connection given by DATABASE_URL
-# (postgres://shopos:PASSWORD@db:5432/shopos), set in .env by docker compose.
+# Cloud server: one SQLite file per shop, in the storage volume. Litestream copies every
+# change to Cloudflare R2 within seconds (see docker-compose.yml).
+# To move a shop to Postgres later, set DATABASE_URL=postgres://... and nothing else changes:
+# the test suite runs on both.
 production:
-  adapter: postgresql
-  encoding: unicode
-  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  url: <%= ENV["DATABASE_URL"] %>
+  <<: *default
+  database: <%= ENV.fetch("SHOP_DB", "storage/production.sqlite3") %>

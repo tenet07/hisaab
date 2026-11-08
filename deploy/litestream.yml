@@ -1,0 +1,16 @@
+# Continuous off-server copy of the shop database to Cloudflare R2 (S3-compatible, free up to 10 GB).
+# Every change is uploaded within a second; 30 days of history are kept, so the database can be
+# restored to any moment in that window. Credentials come from .env.
+dbs:
+  - path: /rails/storage/production.sqlite3
+    replicas:
+      - type: s3
+        endpoint: ${R2_ENDPOINT}
+        bucket: ${R2_BUCKET}
+        path: ${R2_PATH}
+        region: auto
+        access-key-id: ${R2_ACCESS_KEY_ID}
+        secret-access-key: ${R2_SECRET_ACCESS_KEY}
+        sync-interval: 1s
+        snapshot-interval: 24h
+        retention: 720h

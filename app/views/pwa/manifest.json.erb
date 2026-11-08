@@ -1,22 +1,21 @@
 {
-  "name": "Shopos",
-  "icons": [
-    {
-      "src": "/icon.png",
-      "type": "image/png",
-      "sizes": "512x512"
-    },
-    {
-      "src": "/icon.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "maskable"
-    }
-  ],
+  "name": <%= raw shop_name.to_json %>,
+  "short_name": <%= raw shop_name.truncate(12, omission: "").strip.to_json %>,
+  "description": "Bills, stock, collections and deliveries",
+  "id": "/",
   "start_url": "/",
-  "display": "standalone",
   "scope": "/",
-  "description": "Shopos.",
-  "theme_color": "red",
-  "background_color": "red"
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0f5132",
+  "background_color": "#eef0eb",
+  "icons": [
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" },
+    { "src": "/icon-maskable-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "New bill", "url": "/invoices/new" },
+    { "name": "My deliveries", "url": "/deliveries/run" }
+  ]
 }

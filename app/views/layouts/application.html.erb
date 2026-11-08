@@ -6,10 +6,15 @@
   <meta name="theme-color" content="#0f5132" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0c1511" media="(prefers-color-scheme: dark)">
   <meta name="color-scheme" content="light dark">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
   <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
   <%= javascript_importmap_tags %>
+  <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/service-worker.js")</script>
 </head>
 <body class="<%= current_user ? "signed-in role-#{current_user.role}" : "signed-out" %>">
   <a href="#main" class="skip">Skip to content</a>
@@ -23,6 +28,9 @@
     <nav class="side-nav">
       <% items.each do |label, path, ic, match| %><%= nav_link label, path, ic, match: match %><% end %>
     </nav>
+    <div class="install" data-controller="install" hidden>
+      <button type="button" class="btn btn-secondary btn-block" data-action="install#install"><%= icon(:upload, size: 18) %><span>Install app</span></button>
+    </div>
     <div class="side-who">
       <span class="avatar" aria-hidden="true"><%= initials(current_user.name) %></span>
       <span><strong><%= current_user.name %></strong><br><small><%= role_name(current_user) %></small></span>
@@ -39,6 +47,10 @@
       <div class="who-pop">
         <p><strong><%= current_user.name %></strong><br><span class="muted"><%= role_name(current_user) %></span></p>
         <%= link_to edit_pin_path, class: "btn btn-secondary btn-block" do %><%= icon(:key, size: 18) %><span>Change my PIN</span><% end %>
+        <div data-controller="install" hidden>
+          <button type="button" class="btn btn-secondary btn-block" data-action="install#install">Install app</button>
+          <p class="muted" data-install-target="ios" hidden style="font-size:var(--f-sm);margin-top:var(--s2)">On iPhone: tap Share, then <strong>Add to Home Screen</strong>.</p>
+        </div>
         <%= button_to "Log out", session_path, method: :delete, class: "btn btn-secondary btn-block" %>
       </div>
     </details>

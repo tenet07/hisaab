@@ -121,7 +121,8 @@ suite on every push, on both SQLite and Postgres (`.github/workflows/test.yml`).
 
 ## Try it with Postgres locally (optional)
 
-The server uses Postgres. To run the tests against it on your machine:
+The server uses SQLite, but the app also runs on Postgres (the path for growing later).
+To run the tests against Postgres on your machine:
 
 ```bash
 docker run -d --name shopos-pg -p 5432:5432 -e POSTGRES_PASSWORD=dev postgres:16-alpine
@@ -136,14 +137,14 @@ unset DATABASE_URL
 A staging server is the same setup as production (see [DEPLOY.md](DEPLOY.md)) on its own
 subdomain, e.g. `dev.yourshop.in`, so changes can be tried on phones before the shop uses them.
 
-1. Create a small Lightsail instance (the $7 1 GB plan is enough for staging) and point
-   `dev.yourshop.in` at its static IP.
+1. Create a 1 GB Ubuntu server (DEPLOY.md step 1) and point `dev.yourshop.in` (or a free
+   `yourshop-dev.duckdns.org`) at its IP.
 2. On the server:
 
    ```bash
-   sudo apt-get update && sudo apt-get install -y git
+   apt-get update && apt-get install -y git
    git clone https://github.com/tenet07/hisaab.git shopos && cd shopos
-   sudo bash deploy/server-setup.sh dev.yourshop.in
+   bash deploy/server-setup.sh dev.yourshop.in
    ```
 
    For a private repo, create a read-only **deploy key** (GitHub → repo → Settings →
@@ -153,14 +154,14 @@ subdomain, e.g. `dev.yourshop.in`, so changes can be tried on phones before the 
    code, or load the demo shop instead:
 
    ```bash
-   sudo docker compose exec -e DEMO_DATA=1 app bin/rails db:seed
+   docker compose exec -e DEMO_DATA=1 app bin/rails db:seed
    ```
 
    (Demo logins as above, PIN `1234`. Never load demo data on the real shop's server.)
 4. Deploy new code later:
 
    ```bash
-   git pull && sudo bash deploy/update.sh
+   bash deploy/update.sh        # pulls the latest image built from main
    ```
 
 ## How it stays correct
@@ -257,14 +258,17 @@ offline mode for the salesman app, e-way bill generation.
 
 ## Production
 
-Runs on one cloud server with `docker compose`: the app, Postgres 16, Caddy (automatic
-HTTPS) and a nightly `pg_dump` backup kept 30 days. Step-by-step for AWS Lightsail Mumbai,
-costs and the everyday commands are in **[DEPLOY.md](DEPLOY.md)**.
+One small server (1 GB, Mumbai or Bangalore, ~₹5–6k a year) runs one shop with `docker compose`:
+the app, Caddy (automatic HTTPS), a nightly copy, and Litestream copying every change to
+Cloudflare R2 (free tier). Step by step, with costs and everyday commands: **[DEPLOY.md](DEPLOY.md)**.
 
-- `Dockerfile`, `docker-compose.yml`, `deploy/` (Caddyfile, server-setup, update, backup, restore).
-- Development and tests use SQLite; production uses `DATABASE_URL` (Postgres). The test suite
-  passes on both: `DATABASE_URL=postgres://… bin/rails test`.
+- Production database: SQLite, one file per shop (`SHOP_DB`, default `storage/production.sqlite3`).
+  Set `DATABASE_URL=postgres://…` to use Postgres instead; CI runs the tests on both.
+- The app image is built by GitHub Actions on every push to `main` (`.github/workflows/image.yml`)
+  and published as `ghcr.io/tenet07/hisaab:main`; the server only downloads it.
+- Installable app (PWA): the shop's desktop and the delivery person's phone install it from the
+  browser (**Install app**). Pages are never cached; without internet it shows a "No internet" page.
 - Times and dates are Indian time (`Asia/Kolkata`) whatever the server clock says.
 - Login: 5 wrong PINs lock a person for 15 minutes; 20 tries per IP per 10 minutes; a new
   PIN unlocks. First-run setup needs `SETUP_CODE` from `.env`.
-- Owner downloads backups from **Settings → Backups** for an off-server copy.
+- Owner downloads nightly copies from **Settings → Backups**.

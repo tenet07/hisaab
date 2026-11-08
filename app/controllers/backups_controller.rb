@@ -1,7 +1,7 @@
 # Owner downloads the nightly database backups, so a copy lives off the server
 # (on a phone, laptop or Google Drive) without anyone typing commands.
 class BackupsController < ApplicationController
-  NAME = /\Ashopos-\d{4}-\d{2}-\d{2}_\d{4}\.dump\z/
+  NAME = /\Ashopos-\d{4}-\d{2}-\d{2}_\d{4}\.sqlite3\z/
   before_action { redirect_to(root_path, alert: "Only the owner can download backups") unless current_user.owner? }
 
   def self.dir = Pathname(ENV.fetch("BACKUP_DIR", "/backups"))

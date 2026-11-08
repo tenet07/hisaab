@@ -6,7 +6,7 @@ class BackupsTest < ActionDispatch::IntegrationTest
     ENV["BACKUP_DIR"] = @dir.to_s
     @owner = User.create!(name: "B Owner", role: "owner", password: "2580")
     @staff = User.create!(name: "B Accounts", role: "accounts", password: "2580")
-    @dir.join("shopos-2026-11-08_2330.dump").write("PGDMP fake")
+    @dir.join("shopos-2026-11-08_2330.sqlite3").write("SQLite format 3 fake")
     @dir.join("notes.txt").write("not a backup")
   end
   teardown { ENV.delete("BACKUP_DIR"); FileUtils.rm_rf(@dir) }
@@ -15,11 +15,11 @@ class BackupsTest < ActionDispatch::IntegrationTest
     post session_path, params: { user_id: @owner.id, pin: "2580" }
     get backups_path
     assert_response :success
-    assert_match "shopos-2026-11-08_2330.dump", response.body
+    assert_match "shopos-2026-11-08_2330.sqlite3", response.body
     assert_no_match "notes.txt", response.body
-    get backup_path("shopos-2026-11-08_2330.dump")
+    get backup_path("shopos-2026-11-08_2330.sqlite3")
     assert_response :success
-    assert_equal "PGDMP fake", response.body
+    assert_equal "SQLite format 3 fake", response.body
     get backup_path("notes.txt")
     assert_response :not_found
     get "/backups/..%2F..%2Fconfig%2Fmaster.key"
@@ -28,7 +28,7 @@ class BackupsTest < ActionDispatch::IntegrationTest
 
   test "staff can't download backups" do
     post session_path, params: { user_id: @staff.id, pin: "2580" }
-    get backup_path("shopos-2026-11-08_2330.dump")
+    get backup_path("shopos-2026-11-08_2330.sqlite3")
     assert_redirected_to root_path
   end
 end

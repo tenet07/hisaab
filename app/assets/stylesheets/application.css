@@ -548,3 +548,4 @@ fieldset.field{border:0;padding:0;margin:0;min-width:0} fieldset.field>legend{pa
 .ti-lines td:nth-child(2){min-width:140px;width:40%}
 .tax-invoice{overflow-x:auto}
 @media print{.tax-invoice{overflow:visible} .ti-lines th,.ti-lines td{padding:4px 6px}}
+.install{padding:0 var(--s3) var(--s3)}

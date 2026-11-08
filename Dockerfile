@@ -24,6 +24,10 @@ FROM base
 RUN groupadd --system --gid 1000 rails && useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash
 COPY --from=build --chown=rails:rails "$BUNDLE_PATH" "$BUNDLE_PATH"
 COPY --from=build --chown=rails:rails /rails /rails
+# The database lives in /rails/storage (a volume). Create it owned by the app user so the
+# volume starts writable; logs and tmp likewise.
+RUN mkdir -p /rails/storage /rails/log /rails/tmp/pids && chown -R rails:rails /rails/storage /rails/log /rails/tmp
+VOLUME /rails/storage
 USER 1000:1000
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 EXPOSE 3000
