@@ -1,0 +1,24 @@
+<% content_for :title, "Tally export" %>
+<header class="ph"><div><h1>Export for Tally</h1><p class="sub">Sales, credit notes, receipts, purchases, supplier payments and brand claim credits as one Tally import file. Cancelled bills are left out.</p></div></header>
+<div class="grid grid-side">
+<%= form_with url: tally_export_path, method: :get, class: "form panel panel-pad", data: { turbo: false, controller: "range" } do |f| %>
+  <div class="chips" role="group" aria-label="Quick ranges">
+    <button type="button" class="chip" data-action="range#set" data-from="<%= Date.current.beginning_of_month %>" data-to="<%= Date.current %>">This month</button>
+    <button type="button" class="chip" data-action="range#set" data-from="<%= Date.current.prev_month.beginning_of_month %>" data-to="<%= Date.current.prev_month.end_of_month %>">Last month</button>
+    <button type="button" class="chip" data-action="range#set" data-from="<%= Date.current %>" data-to="<%= Date.current %>">Today</button>
+  </div>
+  <div class="fields two">
+    <div class="field"><label class="lbl" for="from">From</label><%= f.date_field :from, value: @from, id: "from", data: { range_target: "from" } %></div>
+    <div class="field"><label class="lbl" for="to">To</label><%= f.date_field :to, value: @to, id: "to", data: { range_target: "to" } %></div>
+  </div>
+  <button type="submit" class="btn btn-lg"><%= icon(:export, size: 20) %>Download XML</button>
+<% end %>
+<aside class="panel panel-pad">
+  <h2 style="margin-bottom:var(--s3)">Before you import</h2>
+  <ol class="muted" style="font-size:var(--f-sm);padding-left:1.2em;margin:0;display:grid;gap:var(--s2)">
+    <li>In Tally: Gateway of Tally → Import → Vouchers.</li>
+    <li>Ledger names in Tally must match: each customer's shop name, <code>Sales - GST</code>, <code>Output CGST</code>, <code>Output SGST</code>, <code>Output IGST</code>, <code>Round Off</code>, <code>Cash</code>, <code>Bank</code>, each supplier's name, <code>Purchase - GST</code>, <code>Input CGST</code>, <code>Input SGST</code>, <code>Input IGST</code>, <code>Warranty Claims Received</code>.</li>
+    <li>Test on a copy of the company first.</li>
+  </ol>
+</aside>
+</div>

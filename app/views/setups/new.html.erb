@@ -1,0 +1,20 @@
+<% content_for :title, "Set up" %>
+<div class="login">
+  <div class="login-brand"><span class="mark"><%= icon(:bulb, size: 26) %></span>
+    <div><h1>Welcome</h1><span class="muted">Set up your shop and the owner's login</span></div></div>
+  <%= form_with url: setup_path, class: "form" do |f| %>
+    <% errs = [@setup_error].compact + @settings.errors.full_messages + @user.errors.full_messages %>
+    <% if errs.any? %><div class="errors" role="alert"><%= errs.to_sentence %></div><% end %>
+    <% if SetupsController.code_required? %>
+    <div class="field"><label class="lbl" for="setup_code">Setup code</label><%= text_field_tag :setup_code, nil, id: "setup_code", required: true, autocomplete: "off" %><span class="hint">From the server's .env file. Only needed once.</span></div>
+    <% end %>
+    <div class="field"><label class="lbl" for="shop_name">Shop name</label><%= text_field_tag "shop[name]", (@settings.name unless @settings.name == "My Shop"), id: "shop_name", required: true %></div>
+    <div class="field"><label class="lbl" for="shop_gstin">GSTIN</label><%= text_field_tag "shop[gstin]", @settings.gstin, id: "shop_gstin", autocapitalize: "characters", maxlength: 15 %><span class="hint">Leave empty if not registered, and pick your state</span></div>
+    <div class="field"><label class="lbl" for="shop_state">State</label><%= select_tag "shop[state_code]", options_for_select(Shop::STATES.map { |c, n| [n, c] }, @settings.state_code), id: "shop_state" %></div>
+    <div class="field"><label class="lbl" for="user_name">Your name</label><%= text_field_tag "user[name]", @user.name, id: "user_name", required: true %></div>
+    <div class="field"><label class="lbl" for="user_password">PIN</label>
+      <%= password_field_tag "user[password]", nil, id: "user_password", class: "pin-input", inputmode: "numeric", pattern: "[0-9]*", maxlength: 6, required: true, autocomplete: "new-password" %>
+      <span class="hint">4 to 6 digits. You'll add staff next.</span></div>
+    <%= f.submit "Start", class: "btn btn-lg btn-block" %>
+  <% end %>
+</div>

@@ -1,0 +1,17 @@
+<%= form_with model: @supplier, class: "form panel panel-pad" do |f| %>
+  <% if @supplier.errors.any? %><div class="errors" role="alert"><%= @supplier.errors.full_messages.to_sentence %></div><% end %>
+  <div class="field"><%= f.label :name, "Supplier / distributor name", class: "lbl" %><%= f.text_field :name, required: true %><span class="hint">Spell it exactly as the ledger in Tally</span></div>
+  <div class="field"><%= f.label :address, class: "lbl" %><%= f.text_area :address, rows: 2 %></div>
+  <div class="field"><%= f.label :brands, "Brands you buy from them", class: "lbl" %><%= f.text_field :brands, placeholder: "Philips, Syska" %><span class="hint">Comma separated. Claims for these brands go to this supplier.</span></div>
+  <div class="fields two">
+    <div class="field"><%= f.label :gstin, "GSTIN", class: "lbl" %><%= f.text_field :gstin, autocapitalize: "characters" %><span class="hint">Decides CGST+SGST or IGST on purchases</span></div>
+    <div class="field"><%= f.label :phone, class: "lbl" %><%= f.telephone_field :phone, inputmode: "numeric", maxlength: 10 %></div>
+  </div>
+  <div class="field"><%= f.label :credit_days, "Credit days", class: "lbl" %><%= f.number_field :credit_days, min: 0, inputmode: "numeric" %><span class="hint">Bills are shown as due this many days after the bill date</span></div>
+  <% if @supplier.new_record? %>
+  <div class="field"><label class="lbl" for="opening_balance">What you owe them today</label>
+    <div class="money-in"><%= text_field_tag :opening_balance, nil, inputmode: "decimal" %></div>
+    <span class="hint">Use a minus sign if they owe you.</span></div>
+  <% end %>
+  <%= f.submit (@supplier.new_record? ? "Add supplier" : "Save changes"), class: "btn btn-lg" %>
+<% end %>

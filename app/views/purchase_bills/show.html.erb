@@ -1,0 +1,19 @@
+<% b = @bill %>
+<% content_for :title, "Purchase #{b.number}" %>
+<%= back_link b.supplier.name, supplier_path(b.supplier) %>
+<header class="ph"><div><h1>Purchase <%= b.number %></h1><p class="sub"><%= b.supplier.name %> · <%= b.date.strftime("%d %b %Y") %> · entered by <%= b.user.name %></p></div></header>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Item</th><th class="num">Qty</th><th class="num hide-sm">Rate</th><th class="num hide-sm">Disc</th><th class="num hide-sm">Taxable</th><th class="num hide-sm">GST</th><th class="num">Amount</th></tr></thead>
+  <tbody><% b.lines.each do |l| %><tr><td><strong><%= l.product.brand %> <%= l.product.name %></strong><br><span class="faint" style="font-size:var(--f-xs)"><%= l.product.sku %> · HSN <%= l.product.hsn %></span></td>
+    <td class="num"><%= l.qty %></td><td class="num hide-sm"><%= rs l.rate_paise %></td><td class="num hide-sm"><%= rs l.discount_paise if l.discount_paise.positive? %></td>
+    <td class="num hide-sm"><%= rs l.taxable_paise %></td><td class="num hide-sm"><%= gst_pct l.gst_bp %></td><td class="num"><%= rs l.total_paise %></td></tr><% end %></tbody>
+</table></div>
+<section class="panel panel-pad mt" style="max-width:420px;margin-left:auto">
+  <dl class="facts">
+    <div><dt>Taxable value</dt><dd class="num"><%= rs b.taxable_paise %></dd></div>
+    <% if b.intra_state %><div><dt>CGST + SGST</dt><dd class="num"><%= rs b.cgst_paise + b.sgst_paise %></dd></div>
+    <% else %><div><dt>IGST</dt><dd class="num"><%= rs b.igst_paise %></dd></div><% end %>
+    <% unless b.round_off_paise.zero? %><div><dt>Round off</dt><dd class="num"><%= rs b.round_off_paise %></dd></div><% end %>
+    <div><dt><strong>Total</strong></dt><dd><%= amt b.total_paise, size: "md" %></dd></div>
+  </dl>
+</section>

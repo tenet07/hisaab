@@ -1,0 +1,36 @@
+<% content_for :title, "Customers" %>
+<header class="ph">
+  <div><h1><%= current_user.field? ? "Shops" : "Customers" %></h1>
+    <p class="sub"><%= pluralize(@customers.size, "shop") %><%= " in #{@market.name}" if @market %> · <%= rs0 @customers.sum { @balances[_1.id].to_i } %> due</p></div>
+  <% if current_user.office? %><div class="ph-actions"><%= link_to new_customer_path, class: "btn" do %><%= icon(:plus, size: 20) %>Add customer<% end %></div><% end %>
+</header>
+
+<%= form_with url: customers_path, method: :get, class: "stack-sm", data: { turbo_frame: "_top" } do |f| %>
+  <%= hidden_field_tag :market_id, params[:market_id] if params[:market_id].present? %>
+  <div class="search"><%= icon(:search, size: 20) %>
+    <%= f.search_field :q, value: params[:q], placeholder: "Search shop name or phone", aria: { label: "Search shop name or phone" }, autocomplete: "off" %></div>
+  <div class="chip-scroll" role="group" aria-label="Market">
+    <%= link_to "All markets", customers_path(q: params[:q].presence), class: "chip #{'on' unless @market}" %>
+    <% @markets.each do |m| %><%= link_to m.name, customers_path(market_id: m.id, q: params[:q].presence), class: "chip #{'on' if @market == m}" %><% end %>
+  </div>
+<% end %>
+
+<% if @customers.any? %>
+<ul class="list mt">
+  <% @customers.each do |c| %>
+  <% bal = @balances[c.id].to_i; over = c.credit_limit_paise.positive? && bal > c.credit_limit_paise %>
+  <li><%= link_to (current_user.field? ? visit_customer_path(c) : c), class: "row-link" do %>
+    <span class="avatar" aria-hidden="true" style="background:var(--sunk);color:var(--ink-2)"><%= initials(c.name) %></span>
+    <span class="row-main"><span class="row-title"><%= c.name %></span>
+      <span class="row-sub"><br><%= c.market.name %><span class="hide-sm"><%= " · #{c.phone}" if c.phone.present? %></span></span></span>
+    <span class="row-end"><%= amt bal, tone: ("due" if bal.positive?) %>
+      <% if over %><br><span class="pill due">Over limit</span><% elsif bal <= 0 %><br><span class="row-sub">Nothing due</span><% end %></span>
+    <%= icon(:chevron, size: 18, cls: "chev") %>
+  <% end %></li>
+  <% end %>
+</ul>
+<% else %>
+<div class="panel empty mt"><%= icon(:search, size: 32) %><strong>No shops found</strong>
+  <p>Try part of the name, or the phone number without +91.</p>
+  <%= link_to "Clear search", customers_path, class: "btn btn-secondary" %></div>
+<% end %>

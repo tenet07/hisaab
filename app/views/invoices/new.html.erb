@@ -1,0 +1,75 @@
+<% content_for :title, current_user.field? ? "New order" : "New bill" %>
+<%
+  customers_json = @customers.map { |c| { id: c.id, name: c.name, market: c.market.name, phone: c.phone.to_s,
+    tier: c.price_tier, bal: @balances[c.id].to_i, limit: c.credit_limit_paise } }
+  products_json = @products.map { |p| { id: p.id, brand: p.brand, name: p.name, sku: p.sku, stock: p.stock,
+    w: p.wholesale_price_paise, r: p.retail_price_paise, gst: p.gst_bp, incl: p.price_includes_tax } }
+%>
+<%= back_link (@customer ? @customer.name : "Back"), (@customer ? (current_user.field? ? visit_customer_path(@customer) : customer_path(@customer)) : (current_user.field? ? customers_path : root_path)) %>
+<header class="ph"><div><h1><%= current_user.field? ? "New order" : "New bill" %></h1>
+  <p class="sub">Prices follow the customer's wholesale or retail rate. GST is added for you.</p></div></header>
+
+<%= form_with url: invoices_path, class: "bill-form", data: { turbo: false, controller: "bill", action: "keydown->bill#formKey submit->bill#submit" } do |f| %>
+  <script type="application/json" data-bill-target="customers"><%= raw customers_json.to_json %></script>
+  <script type="application/json" data-bill-target="products"><%= raw products_json.to_json %></script>
+  <input type="hidden" name="customer_id" value="<%= @customer&.id %>" data-bill-target="customerId">
+
+  <div class="grid grid-side">
+  <div class="stack">
+    <%# ---- 1. Customer %>
+    <section class="panel panel-pad" aria-labelledby="cust-h">
+      <h2 id="cust-h" style="margin-bottom:var(--s3)">Customer</h2>
+      <div data-bill-target="chosen" class="chosen" <%= "hidden" unless @customer %>>
+        <span class="row-main"><strong data-bill-target="chosenName"><%= @customer&.name %></strong>
+          <span class="row-sub" data-bill-target="chosenMeta"></span></span>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="bill#changeCustomer">Change</button>
+      </div>
+      <div class="picker floating" data-bill-target="custPicker" <%= "hidden" if @customer %>>
+        <div class="search"><%= icon(:search, size: 20) %>
+          <input type="search" data-bill-target="custQuery" placeholder="Type shop name or phone" autocomplete="off"
+                 aria-label="Find customer" role="combobox" aria-expanded="false" aria-controls="cust-list" aria-autocomplete="list"
+                 data-action="input->bill#custSearch focus->bill#custSearch keydown->bill#custKey" <%= "autofocus" unless @customer %>>
+        </div>
+        <ul id="cust-list" class="picker-list" role="listbox" data-bill-target="custList" hidden></ul>
+      </div>
+    </section>
+
+    <%# ---- 2. Items %>
+    <section class="panel" aria-labelledby="items-h">
+      <div class="panel-pad" style="padding-bottom:var(--s3)">
+        <div class="split" style="margin-bottom:var(--s3)"><h2 id="items-h">Items</h2>
+          <span class="faint hide-md" style="font-size:var(--f-xs)"><kbd>↑</kbd> <kbd>↓</kbd> to pick, <kbd>Enter</kbd> to add</span></div>
+        <div class="picker" data-bill-target="prodPicker">
+          <div class="search"><%= icon(:search, size: 20) %>
+            <input type="search" data-bill-target="prodQuery" placeholder="Add item: type brand, name or code" autocomplete="off"
+                   aria-label="Add item" role="combobox" aria-expanded="false" aria-controls="prod-list" aria-autocomplete="list"
+                   data-action="input->bill#prodSearch focus->bill#prodSearch keydown->bill#prodKey" <%= "autofocus" if @customer %>>
+          </div>
+          <ul id="prod-list" class="picker-list" role="listbox" data-bill-target="prodList" hidden></ul>
+        </div>
+      </div>
+      <ul class="lines" data-bill-target="lines" aria-live="polite"></ul>
+      <div class="lines-empty" data-bill-target="linesEmpty"><%= icon(:box, size: 28) %><br>No items yet. Search above and tap an item to add it.</div>
+      <div class="totals" data-bill-target="totals" hidden>
+        <div><span>Taxable value</span><span class="tnum" data-bill-target="taxable"></span></div>
+        <div><span>GST</span><span class="tnum" data-bill-target="tax"></span></div>
+        <div data-bill-target="roundRow"><span>Round off</span><span class="tnum" data-bill-target="round"></span></div>
+      </div>
+    </section>
+  </div>
+
+  <%# ---- 3. Delivery + save %>
+  <aside class="stack">
+    <section class="panel panel-pad">
+      <label class="check"><%= check_box_tag :deliver, "1", @customer.nil? || @customer.price_tier == "wholesale", data: { bill_target: "deliver", action: "bill#deliverTouched" } %>
+        <span>Deliver to the shop<br><span class="hint" style="font-weight:400;font-size:var(--f-xs);color:var(--ink-2)">Untick if the customer takes the goods now</span></span></label>
+      <div class="note mt" data-bill-target="limitWarn" hidden><%= icon(:alert, size: 18) %><p></p></div>
+    </section>
+  </aside>
+  </div>
+    <div class="actionbar">
+      <div class="total"><div class="k">Bill total</div><span class="amt md" data-bill-target="total">₹0</span>
+        <div class="faint" style="font-size:var(--f-xs)" data-bill-target="count">No items</div></div>
+      <%= f.submit "Save bill", class: "btn btn-lg", data: { bill_target: "save" }, disabled: true %>
+    </div>
+<% end %>

@@ -1,0 +1,48 @@
+<% p = @product; snap = p.snapshot %>
+<% content_for :title, p.label %>
+<%= back_link "Stock", products_path %>
+<header class="ph">
+  <div><h1><%= p.brand %> <%= p.name %></h1><p class="sub"><%= p.sku %> · HSN <%= p.hsn %> · GST <%= gst_pct p.gst_bp %> · Warranty <%= p.warranty_months.zero? ? "none" : "#{p.warranty_months} months" %></p></div>
+  <% if current_user.office? %><div class="ph-actions"><%= link_to "Edit product", edit_product_path(p), class: "btn btn-secondary" %></div><% end %>
+</header>
+
+<section class="stats" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))" aria-label="Stock by place">
+  <% snap.each_with_index do |(b, q), i| %>
+  <div class="stat" style="border-top:0;<%= 'border-left:0' if i.zero? %>"><div class="k"><%= b == :sellable ? "On shelf" : bucket_name(b) %></div>
+    <div class="v"><span class="amt <%= 'lg' if b == :sellable %> <%= 'due' if b == :sellable && p.low_stock? %>"><%= q %></span></div>
+    <% if b == :sellable %><div class="d">Reorder at <%= p.reorder_level %></div><% end %></div>
+  <% end %>
+</section>
+<p class="muted mt" style="font-size:var(--f-sm)">Prices: wholesale <strong><%= rs p.wholesale_price_paise %></strong> · retail <strong><%= rs p.retail_price_paise %></strong> <%= p.price_includes_tax ? "(incl. GST)" : "(+ GST)" %></p>
+
+<% if current_user.office? %>
+<div class="grid grid-2 section">
+  <section class="panel panel-pad"><h2 style="margin-bottom:var(--s4)">Goods received</h2>
+    <p class="muted" style="font-size:var(--f-sm)">Enter the supplier's bill: stock and what you owe them are updated together.</p>
+    <% sup = Supplier.for_brand(p.brand) %>
+    <%= link_to new_purchase_bill_path(supplier_id: sup&.id), class: "btn" do %><%= icon(:plus, size: 20) %>Enter purchase bill<% end %>
+    <% if p.last_cost_paise.positive? %><p class="muted mt" style="font-size:var(--f-sm)">Last cost <strong><%= rs p.last_cost_paise %></strong> per piece incl. GST<%= " from #{sup.name}" if sup %></p><% end %>
+  </section>
+  <section class="panel panel-pad"><h2 style="margin-bottom:var(--s2)">Physical count</h2>
+    <p class="muted" style="font-size:var(--f-sm)">Expect <strong><%= p.expected_on_shelf %></strong> on the shelf: <%= p.stock %> sellable
+      <% if p.awaiting_delivery.positive? %>+ <%= p.awaiting_delivery %> billed but not yet delivered<% end %>. Enter the sellable count only.</p>
+  <%= form_with url: adjust_product_path(p), class: "form" do |f| %>
+    <div class="fields two">
+      <div class="field"><label class="lbl" for="counted">Counted on shelf</label><%= f.number_field :counted, min: 0, required: true, id: "counted", inputmode: "numeric" %></div>
+      <div class="field"><label class="lbl" for="reason">Reason for any difference</label><%= f.text_field :reason, required: true, id: "reason", placeholder: "Breakage, miscount…" %></div>
+    </div>
+    <%= f.submit "Post count", class: "btn btn-secondary" %>
+  <% end %></section>
+</div>
+<% end %>
+
+<section class="section">
+  <div class="section-h"><h2>Movements</h2><span class="faint" style="font-size:var(--f-sm)">Latest 50</span></div>
+  <% if @movements.any? %>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>When</th><th class="hide-sm">Place</th><th class="num">Qty</th><th>Reason</th><th class="hide-sm">Ref</th><th class="hide-md">By</th></tr></thead>
+    <tbody><% @movements.each do |m| %><tr><td class="nowrap"><%= m.created_at.strftime("%d %b %H:%M") %></td><td class="hide-sm"><%= bucket_name m.bucket %></td>
+      <td class="num"><strong class="<%= m.qty.positive? ? 'good' : 'due' %>"><%= m.qty.positive? ? "+#{m.qty}" : m.qty %></strong></td><td><%= m.reason.to_s.humanize %><span class="only-sm faint"><br><%= bucket_name m.bucket %></span></td><td class="hide-sm"><%= m.ref %></td><td class="hide-md faint"><%= m.user.name %></td></tr><% end %></tbody>
+  </table></div>
+  <% else %><div class="panel empty"><strong>No movements yet</strong></div><% end %>
+</section>

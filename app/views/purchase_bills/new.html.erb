@@ -1,0 +1,29 @@
+<% content_for :title, "Purchase bill" %>
+<%= back_link "Suppliers", suppliers_path %>
+<header class="ph"><div><h1>Purchase bill</h1><p class="sub">Copy the supplier's bill. Rates are before GST. Stock and what you owe update together.</p></div></header>
+<%= form_with url: purchase_bills_path, class: "form wide", data: { turbo: false } do |f| %>
+  <section class="panel panel-pad">
+    <div class="fields" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <div class="field"><label class="lbl" for="supplier_id">Supplier</label>
+        <%= f.select :supplier_id, @suppliers.map { |s| [s.name, s.id] }, { selected: @supplier&.id, prompt: "Choose supplier" }, required: true, id: "supplier_id" %></div>
+      <div class="field"><label class="lbl" for="number">Their bill no.</label><%= f.text_field :number, required: true, id: "number" %></div>
+      <div class="field"><label class="lbl" for="date">Bill date</label><%= f.date_field :date, value: Date.current, required: true, id: "date" %></div>
+    </div>
+  </section>
+  <% if @supplier&.brand_list&.any? %><p class="faint mt" style="font-size:var(--f-sm)">Showing <%= @supplier.brands %> items. <%= link_to "Show all products", new_purchase_bill_path %></p><% end %>
+  <div class="tbl-wrap mt"><table class="entry">
+    <thead><tr><th>Item</th><th style="width:96px">Qty</th><th style="width:130px">Rate ₹</th><th style="width:120px" class="hide-sm">Discount ₹</th></tr></thead>
+    <tbody><% 10.times do |i| %>
+      <tr><td><%= select_tag "items[#{i}][product_id]", options_for_select([["", ""]] + @products.map { |p| ["#{p.brand} #{p.name} (#{p.sku}) · GST #{gst_pct p.gst_bp}", p.id] }), aria: { label: "Item #{i + 1}" } %></td>
+        <td><%= number_field_tag "items[#{i}][qty]", nil, min: 0, inputmode: "numeric", aria: { label: "Quantity #{i + 1}" } %></td>
+        <td><%= text_field_tag "items[#{i}][rate]", nil, inputmode: "decimal", aria: { label: "Rate #{i + 1}" } %></td>
+        <td class="hide-sm"><%= text_field_tag "items[#{i}][discount]", nil, inputmode: "decimal", aria: { label: "Discount #{i + 1}" } %></td></tr>
+    <% end %></tbody>
+  </table></div>
+  <div class="actionbar">
+    <div class="field" style="flex:1;max-width:320px"><label class="lbl" for="printed_total">Total printed on their bill</label>
+      <div class="money-in"><%= f.text_field :printed_total, inputmode: "decimal", id: "printed_total" %></div>
+      <span class="hint">We check our total matches within ₹1</span></div>
+    <%= f.submit "Save purchase", class: "btn btn-lg" %>
+  </div>
+<% end %>

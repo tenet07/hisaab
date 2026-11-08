@@ -1,0 +1,48 @@
+<% content_for :title, @claim.number %>
+<%= back_link "Brand claims", claims_path %>
+<header class="ph"><div><h1><%= @claim.number %></h1><% sup = @claim.supplier || Supplier.for_brand(@claim.brand) %><p class="sub"><%= @claim.brand %> · sent <%= @claim.sent_on.strftime("%d %b %Y") %> · <%= @claim.status.humanize %><%= " · #{sup.name}" if sup %></p></div></header>
+<div class="note" style="margin-bottom:var(--s4)"><%= icon(:alert, size: 18) %><p><strong>New piece</strong> returns stock to the shelf. <strong>Credit note</strong> means the brand pays in money: record their credit note below once it arrives. <strong>Rejected</strong> writes the piece off and needs the owner.</p></div>
+<div class="stack">
+<% @claim.lines.each do |l| %>
+<section class="panel panel-pad">
+  <div class="split"><h3><%= l.product.brand %> <%= l.product.name %></h3><% if l.open_qty.positive? %><span class="pill warn"><%= l.open_qty %> open</span><% else %><span class="pill ok">Settled</span><% end %></div>
+  <p class="muted" style="font-size:var(--f-sm);margin-top:var(--s1)">Sent <%= l.qty %> · new piece <%= l.settled_new_qty %> · credit <%= l.settled_credit_qty %> · rejected <%= l.rejected_qty %></p>
+  <% if l.open_qty.positive? %>
+  <%= form_with url: settle_claim_claim_line_path(@claim, l), class: "form wide" do |f| %>
+    <div class="fields" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <div class="field"><label class="lbl" for="n<%= l.id %>">New pieces</label><%= f.number_field :new_qty, min: 0, value: 0, id: "n#{l.id}", inputmode: "numeric" %></div>
+      <div class="field"><label class="lbl" for="c<%= l.id %>">Credit note</label><%= f.number_field :credit_qty, min: 0, value: 0, id: "c#{l.id}", inputmode: "numeric" %></div>
+      <div class="field"><label class="lbl" for="r<%= l.id %>">Rejected</label><%= f.number_field :rejected_qty, min: 0, value: 0, id: "r#{l.id}", inputmode: "numeric" %></div>
+    </div>
+    <div><%= f.submit "Save", class: "btn" %></div>
+  <% end %>
+  <% end %>
+</section>
+<% end %>
+</div>
+
+<% if @claim.credit_qty.positive? %>
+<section class="panel panel-pad section">
+  <div class="split"><h2>Brand credit note</h2>
+    <% if @claim.credited_paise >= @claim.expected_credit_paise && @claim.credited_paise.positive? %><span class="pill ok">Received</span><% else %><span class="pill warn">Waiting</span><% end %></div>
+  <div class="stats s3" style="margin-top:var(--s3)">
+    <div class="stat"><div class="k">Pieces for credit</div><div class="v"><span class="amt"><%= @claim.credit_qty %></span></div></div>
+    <div class="stat"><div class="k">Worth at your cost</div><div class="v"><%= amt @claim.expected_credit_paise %></div></div>
+    <div class="stat"><div class="k">Received</div><div class="v"><%= amt @claim.credited_paise, tone: ("good" if @claim.credited_paise.positive?) %></div></div>
+  </div>
+  <% if @claim.credits.any? %><ul class="list" style="margin-top:var(--s3)"><% @claim.credits.each do |cc| %>
+    <li><div class="row-link"><span class="row-main"><span class="row-title"><%= cc.number %></span><br><span class="row-sub"><%= cc.date.strftime("%d %b %Y") %></span></span><span class="row-end"><%= amt cc.amount_paise %></span></div></li>
+  <% end %></ul><% end %>
+  <% if %w[owner accounts].include?(current_user.role) %>
+  <%= form_with url: claim_credits_path, class: "form wide", style: "margin-top:var(--s4)" do |f| %>
+    <%= f.hidden_field :claim_id, value: @claim.id %>
+    <div class="fields" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <div class="field"><label class="lbl" for="cn_no">Their credit note no.</label><%= f.text_field :number, required: true, id: "cn_no" %></div>
+      <div class="field"><label class="lbl" for="cn_amt">Amount ₹</label><%= f.text_field :amount, required: true, id: "cn_amt", inputmode: "decimal" %></div>
+      <div class="field"><label class="lbl" for="cn_date">Date</label><%= f.date_field :date, value: Date.current, id: "cn_date" %></div>
+    </div>
+    <div><%= f.submit "Record credit note", class: "btn" %></div>
+  <% end %>
+  <% end %>
+</section>
+<% end %>

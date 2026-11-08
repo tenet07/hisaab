@@ -1,0 +1,89 @@
+<% content_for :title, "Today" %>
+<% awaiting_qty = @awaiting.values.flatten(1).sum { |_, q| q } %>
+<% cash = @collected_today["cash"].to_i; other = @collected_today.values.sum - cash %>
+<% max_due = @due_by_market.map(&:last).max.to_i %>
+<header class="ph">
+  <div><h1>Today</h1><p class="sub"><%= Date.current.strftime("%A, %d %B") %></p></div>
+  <div class="ph-actions">
+    <% if current_user.can_bill? %><%= link_to new_invoice_path, class: "btn" do %><%= icon(:plus, size: 20) %>New bill<% end %><% end %>
+    <%= link_to customers_path, class: "btn btn-secondary" do %><%= icon(:rupee, size: 20) %>Record payment<% end %>
+  </div>
+</header>
+
+<section class="stats s4" aria-label="Today's numbers">
+  <div class="stat lead"><div class="k">Sales today</div><div class="v"><%= amt @sales_today %></div>
+    <div class="d"><%= pluralize(@bills_today, "bill") %></div></div>
+  <div class="stat"><div class="k">Collected</div><div class="v"><%= amt @collected_today.values.sum, tone: ("good" if @collected_today.values.sum.positive?) %></div>
+    <div class="d"><%= @collected_today.any? ? "Cash #{rs0 cash} · UPI/cheque #{rs0 other}" : "Nothing yet" %></div></div>
+  <div class="stat"><div class="k">Customers owe</div><div class="v"><%= amt @total_due, tone: "due" %></div>
+    <div class="d">across <%= @due_by_market.size %> markets</div></div>
+  <div class="stat"><div class="k">Deliveries open</div><div class="v"><span class="amt"><%= @runs.count %></span></div>
+    <div class="d"><%= @unassigned.positive? ? "#{@unassigned} not assigned" : "all assigned" %></div></div>
+</section>
+
+<div class="grid grid-side section">
+  <section aria-labelledby="needs-h">
+    <div class="section-h"><h2 id="needs-h">Needs you</h2></div>
+    <% needs = [] %>
+    <% needs << [:due, "#{pluralize(@over_limit.size, 'shop')} over credit limit", @over_limit.first(3).map(&:name).join(", ") + (@over_limit.size > 3 ? "…" : ""), customers_path] if @over_limit.any? %>
+    <% needs << [:lamp, "#{pluralize(@low_stock.size, 'item')} low on stock", @low_stock.first(3).map { "#{_1.brand} #{_1.name}" }.join(", "), products_path] if @low_stock.any? %>
+    <% needs << [:info, "#{pluralize(@unassigned, 'delivery', plural: 'deliveries')} not assigned", "Pick a delivery person on Dispatch", deliveries_path] if @unassigned.positive? && current_user.office? %>
+    <% needs << [:due, "#{pluralize(@failed, 'delivery', plural: 'deliveries')} not delivered", "Reschedule from Dispatch", deliveries_path] if @failed.positive? && current_user.office? %>
+    <% needs << [:lamp, "#{pluralize(awaiting_qty, 'defective piece')} to send to brands", @awaiting.keys.join(", "), claims_path] if awaiting_qty.positive? && current_user.office? %>
+    <% needs << [:info, "#{pluralize(@with_brand.sum(&:open_qty), 'piece')} still with brands", "Oldest sent #{time_ago_in_words(@with_brand.map { _1.claim.sent_on }.min)} ago", claims_path] if @with_brand.any? && current_user.office? %>
+    <% needs << [:due, "#{rs0 @supplier_due_now} due to suppliers", "Total owed #{rs0 @owed_to_suppliers} · see who to pay", suppliers_path] if @supplier_due_now.positive? && current_user.office? %>
+    <% if @claims_awaiting_credit.any? && current_user.office? %>
+      <% needs << [:lamp, "#{pluralize(@claims_awaiting_credit.size, 'claim')} waiting for a brand credit note", "Worth about #{rs0 @claims_awaiting_credit.sum(&:expected_credit_paise)} at cost · #{@claims_awaiting_credit.map(&:brand).uniq.join(', ')}", claims_path] %>
+    <% end %>
+    <% if needs.any? %>
+    <ul class="list needs">
+      <% needs.each do |tone, title, sub, path| %>
+      <li><%= link_to path, class: "row-link" do %>
+        <span class="dot <%= tone %>"></span>
+        <span class="row-main"><span class="row-title"><%= title %></span><br><span class="row-sub"><%= sub %></span></span>
+        <%= icon(:chevron, size: 18, cls: "chev") %>
+      <% end %></li>
+      <% end %>
+    </ul>
+    <% else %>
+    <div class="panel all-clear"><%= icon(:check) %>Nothing needs you right now.</div>
+    <% end %>
+
+    <% if @over_limit.any? %>
+    <div class="section-h section"><h2>Over credit limit</h2></div>
+    <ul class="list">
+      <% @over_limit.each do |c| %>
+      <li><%= link_to c, class: "row-link" do %>
+        <span class="row-main"><span class="row-title"><%= c.name %></span><br><span class="row-sub"><%= c.market.name %> · limit <%= rs0 c.credit_limit_paise %></span></span>
+        <span class="row-end"><%= amt c.balance_paise, tone: "due" %><br><span class="row-sub"><%= rs0(c.balance_paise - c.credit_limit_paise) %> over</span></span>
+      <% end %></li>
+      <% end %>
+    </ul>
+    <% end %>
+
+    <% if @low_stock.any? %>
+    <div class="section-h section"><h2>Low stock</h2><%= link_to "All stock", products_path %></div>
+    <ul class="list">
+      <% @low_stock.each do |p| %>
+      <li><%= link_to p, class: "row-link" do %>
+        <span class="row-main"><span class="row-title"><%= p.brand %> <%= p.name %></span><br><span class="row-sub">Reorder at <%= p.reorder_level %></span></span>
+        <span class="row-end"><strong class="tnum due"><%= p.stock %></strong> <span class="row-sub">left</span></span>
+      <% end %></li>
+      <% end %>
+    </ul>
+    <% end %>
+  </section>
+
+  <section aria-labelledby="mk-h">
+    <div class="section-h"><h2 id="mk-h">Due by market</h2><% if current_user.office? %><%= link_to "Markets", markets_path %><% end %></div>
+    <div class="panel">
+      <ul class="bars">
+        <% @due_by_market.sort_by { -_2 }.each do |m, due| %>
+        <li><%= link_to customers_path(market_id: m.id), class: "bar-link" do %><span class="bar-name"><%= m.name %></span><span class="num"><strong><%= rs0 due %></strong></span>
+          <span class="row-sub">Delivery <%= m.delivery_day %></span>
+          <span class="bar" aria-hidden="true"><i style="width:<%= max_due.positive? ? (due * 100.0 / max_due).clamp(0, 100).round : 0 %>%"></i></span><% end %></li>
+        <% end %>
+      </ul>
+    </div>
+  </section>
+</div>

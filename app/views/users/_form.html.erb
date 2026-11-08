@@ -1,0 +1,21 @@
+<%= form_with model: @user, class: "form panel panel-pad" do |f| %>
+  <% if @user.errors.any? %><div class="errors" role="alert"><%= @user.errors.full_messages.to_sentence %></div><% end %>
+  <div class="field"><%= f.label :name, class: "lbl" %><%= f.text_field :name, required: true %></div>
+  <fieldset class="field"><legend class="lbl">Role</legend>
+    <div class="choice-list">
+    <% [["owner", "Owner", "Everything, including staff and write-offs"],
+        ["accounts", "Accounts", "Bills, ledgers, suppliers, Tally, imports"],
+        ["counter", "Counter", "Bills, stock, replacements"],
+        ["salesman", "Salesman", "Shops, orders, payments, replacements"],
+        ["delivery", "Delivery", "Their own delivery run only"]].each do |v, l, d| %>
+      <label class="choice"><%= f.radio_button :role, v %><span><strong><%= l %></strong><small><%= d %></small></span></label>
+    <% end %></div>
+  </fieldset>
+  <div class="field"><%= f.label :password, (@user.new_record? ? "PIN" : "New PIN"), class: "lbl" %>
+    <%= f.password_field :password, inputmode: "numeric", pattern: "[0-9]*", maxlength: 6, class: "pin-input", autocomplete: "new-password", required: @user.new_record? %>
+    <span class="hint"><%= @user.new_record? ? "4 to 6 digits. Tell them in person." : "Leave empty to keep their current PIN" %></span></div>
+  <% unless @user.new_record? %>
+  <label class="check"><%= f.check_box :active %><span>Can log in</span></label>
+  <% end %>
+  <%= f.submit (@user.new_record? ? "Add staff" : "Save changes"), class: "btn btn-lg" %>
+<% end %>

@@ -1,0 +1,29 @@
+<% content_for :title, "Brand claims" %>
+<header class="ph"><div><h1>Brand claims</h1><p class="sub">Send defective pieces back to the brand, then record what they gave you.</p></div></header>
+<section>
+  <div class="section-h"><h2>Ready to send</h2></div>
+  <% if @awaiting.any? %>
+  <div class="grid grid-3">
+  <% @awaiting.each do |brand, rows| %>
+    <div class="panel panel-pad brand-card"><h3><span><%= brand %></span><span class="pill warn"><%= pluralize(rows.sum { |_, q| q }, "piece") %></span></h3>
+      <ul><% rows.each do |p, q| %><li><%= p.name %> <span class="faint">(<%= p.sku %>)</span> × <strong><%= q %></strong></li><% end %></ul>
+      <%= button_to "Send claim to #{brand}", claims_path(brand: brand), class: "btn btn-block", form: { data: { turbo_confirm: "Move all #{brand} pieces to 'with brand'?" } } %>
+    </div>
+  <% end %>
+  </div>
+  <% else %><div class="panel all-clear"><%= icon(:check) %>Nothing waiting to be sent.</div><% end %>
+</section>
+<section class="section">
+  <div class="section-h"><h2>Claims</h2></div>
+  <% if @claims.any? %>
+  <ul class="list">
+    <% @claims.each do |c| %>
+    <li><%= link_to c, class: "row-link" do %>
+      <span class="row-main"><span class="row-title"><%= c.number %> · <%= c.brand %></span><br><span class="row-sub">Sent <%= c.sent_on.strftime("%d %b") %> · <%= pluralize(c.lines.sum(&:qty), "piece") %></span></span>
+      <span class="row-end"><% if c.open_qty.positive? %><span class="pill warn"><%= c.open_qty %> open</span><% else %><span class="pill ok"><%= c.status.humanize %></span><% end %></span>
+      <%= icon(:chevron, size: 18, cls: "chev") %>
+    <% end %></li>
+    <% end %>
+  </ul>
+  <% else %><div class="panel empty"><strong>No claims yet</strong><p>Claims you send to brands will show here.</p></div><% end %>
+</section>

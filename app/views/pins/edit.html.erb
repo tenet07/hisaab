@@ -1,0 +1,8 @@
+<% content_for :title, "Change my PIN" %>
+<header class="ph"><div><h1>Change my PIN</h1><p class="sub"><%= current_user.name %></p></div></header>
+<%= form_with url: pin_path, method: :patch, class: "form panel panel-pad", style: "max-width:420px" do |f| %>
+  <div class="field"><label class="lbl" for="current_pin">Current PIN</label><%= f.password_field :current_pin, id: "current_pin", class: "pin-input", inputmode: "numeric", pattern: "[0-9]*", maxlength: 6, required: true, autocomplete: "current-password" %></div>
+  <div class="field"><label class="lbl" for="pin">New PIN</label><%= f.password_field :pin, id: "pin", class: "pin-input", inputmode: "numeric", pattern: "[0-9]*", maxlength: 6, required: true, autocomplete: "new-password" %><span class="hint">4 to 6 digits, not 1234 or a repeated digit</span></div>
+  <div class="field"><label class="lbl" for="pin_confirmation">New PIN again</label><%= f.password_field :pin_confirmation, id: "pin_confirmation", class: "pin-input", inputmode: "numeric", pattern: "[0-9]*", maxlength: 6, required: true, autocomplete: "new-password" %></div>
+  <%= f.submit "Change PIN", class: "btn btn-lg btn-block" %>
+<% end %>

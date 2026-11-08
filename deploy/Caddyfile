@@ -1,0 +1,14 @@
+# Caddy gets and renews the HTTPS certificate for APP_HOST by itself.
+{$APP_HOST} {
+	encode zstd gzip
+	request_body {
+		max_size 10MB
+	}
+	reverse_proxy app:3000
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+		-Server
+	}
+}

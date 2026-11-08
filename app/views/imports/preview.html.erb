@@ -1,0 +1,31 @@
+<% bad = @result.rows.count { !_1.ok? }; c = @result.counts %>
+<% content_for :title, "Check import" %>
+<%= back_link "Import", imports_path %>
+<header class="ph"><div><h1>Check before saving</h1><p class="sub"><%= @result.kind.to_s.capitalize %> · <%= @file_name %></p></div></header>
+<section class="stats s3" aria-label="Summary">
+  <div class="stat"><div class="k">New</div><div class="v"><span class="amt"><%= c["new"].to_i %></span></div></div>
+  <div class="stat"><div class="k">Updates</div><div class="v"><span class="amt"><%= c["update"].to_i %></span></div></div>
+  <div class="stat <%= 'lead' if bad.zero? %>"><div class="k">Problems</div><div class="v"><span class="amt <%= 'due' if bad.positive? %>"><%= bad %></span></div>
+    <div class="d"><%= bad.zero? ? "Ready to save" : "Fix and upload again" %></div></div>
+</section>
+<% if bad.positive? %>
+<div class="flash flash-bad mt" role="alert"><%= icon(:alert, size: 20) %><span>Nothing will be saved until every row is fixed. Correct the file and upload it again.</span>
+  <%= link_to "Upload again", imports_path, class: "btn btn-sm" %></div>
+<% end %>
+<% cols = Importer::COLUMNS[@result.kind] %>
+<div class="tbl-wrap mt"><table>
+  <thead><tr><th>Row</th><th>Result</th><% cols.each do |col| %><th class="nowrap"><%= col.tr("_", " ").capitalize %></th><% end %></tr></thead>
+  <tbody><% @result.rows.sort_by { _1.ok? ? 1 : 0 }.each do |r| %>
+  <tr class="<%= 'row-bad' unless r.ok? %>"><td class="num"><%= r.line %></td>
+    <td style="min-width:200px"><% if r.ok? %><span class="pill <%= r.action == 'new' ? 'ok' : 'info' %>"><%= r.action.capitalize %></span><%= tag.div(r.note, class: "faint", style: "font-size:var(--f-xs);margin-top:var(--s1)") if r.note %>
+      <% else %><strong class="due"><%= r.errors.join("; ") %></strong><% end %></td>
+    <% cols.each do |col| %><td class="nowrap"><%= r.data[col] %></td><% end %></tr>
+  <% end %></tbody>
+</table></div>
+<% unless bad.positive? %>
+<div class="actionbar">
+  <span class="muted"><%= pluralize(@result.rows.size, "row") %> checked, no problems</span>
+  <span style="display:flex;gap:var(--s2)"><%= link_to "Cancel", imports_path, class: "btn btn-ghost" %>
+  <%= button_to "Save #{@result.rows.size} rows", commit_imports_path, class: "btn btn-lg" %></span>
+</div>
+<% end %>

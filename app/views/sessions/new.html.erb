@@ -1,0 +1,20 @@
+<% content_for :title, "Log in" %>
+<div class="login">
+  <div class="login-brand"><span class="mark"><%= icon(:bulb, size: 26) %></span>
+    <div><h1><%= shop_name %></h1><span class="muted">Shop books, stock and deliveries</span></div></div>
+  <%= form_with url: session_path, class: "form" do |f| %>
+    <fieldset class="who-grid">
+      <legend>Tap your name</legend>
+      <% @users.each_with_index do |u, i| %>
+        <label class="who-tile">
+          <%= radio_button_tag :user_id, u.id, i.zero?, required: true %>
+          <span class="avatar" aria-hidden="true"><%= initials(u.name) %></span>
+          <span><strong><%= u.name %></strong><small><%= role_name(u) %></small></span>
+        </label>
+      <% end %>
+    </fieldset>
+    <div class="field"><label class="lbl" for="pin">PIN</label>
+      <%= f.password_field :pin, id: "pin", class: "pin-input", inputmode: "numeric", pattern: "[0-9]*", autocomplete: "current-password", required: true, maxlength: 8 %></div>
+    <%= f.submit "Log in", class: "btn btn-lg btn-block" %>
+  <% end %>
+</div>

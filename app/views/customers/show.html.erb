@@ -1,0 +1,61 @@
+<% c = @customer; bal = c.balance_paise; total_age = @ageing.values.sum %>
+<% content_for :title, c.name %>
+<%= back_link "Customers", customers_path %>
+<header class="ph">
+  <div><h1><%= c.name %></h1>
+    <p class="sub"><%= c.market.name %><%= " · #{c.owner_name}" if c.owner_name.present? %><%= " · #{c.phone}" if c.phone.present? %> · <%= c.price_tier.capitalize %> prices
+      <%= " · GSTIN #{c.gstin}" if c.gstin.present? %><%= " · Out of state (IGST)" unless c.intra_state? %></p></div>
+  <div class="ph-actions">
+    <% if current_user.office? %><%= link_to "Edit", edit_customer_path(c), class: "btn btn-ghost" %><% end %>
+    <%= link_to "Statement", statement_customer_path(c), class: "btn btn-secondary" %>
+  </div>
+</header>
+
+<div class="grid grid-side">
+  <section class="panel hero">
+    <div class="k">Balance due</div>
+    <%= amt bal, tone: (bal.positive? ? "due" : "good"), size: "xl" %>
+    <% if c.over_limit? %><p class="mt mb0"><span class="pill due">Over credit limit of <%= rs0 c.credit_limit_paise %></span></p><% end %>
+    <% if total_age.positive? %>
+      <div class="ageing" role="img" aria-label="Ageing of unpaid amount">
+        <% @ageing.each_with_index do |(b, v), i| %><% if v.positive? %><i class="age-<%= i %>" style="width:<%= (v * 100.0 / total_age).round(1) %>%"></i><% end %><% end %>
+      </div>
+      <div class="age-legend"><% @ageing.each_with_index do |(b, v), i| %><span><i class="age-<%= i %>"></i><%= b %> days <strong class="tnum"><%= rs0 v %></strong></span><% end %></div>
+    <% end %>
+  </section>
+  <section class="stack-sm" aria-label="Actions">
+    <% if current_user.can_bill? %><%= link_to new_invoice_path(customer_id: c.id), class: "btn btn-block" do %><%= icon(:plus, size: 20) %>New bill<% end %><% end %>
+    <%= link_to new_customer_payment_path(c), class: "btn btn-block btn-secondary" do %><%= icon(:rupee, size: 20) %>Record payment<% end %>
+    <% if (wa = wa_link(c, reminder_message(c))) && bal.positive? %><%= link_to wa, class: "btn btn-block btn-wa", target: "_blank", rel: "noopener" do %><%= icon(:chat, size: 20) %>WhatsApp reminder<% end %><% end %>
+    <%= link_to "Salesman view", visit_customer_path(c), class: "btn btn-block btn-ghost" %>
+  </section>
+</div>
+
+<section class="section">
+  <div class="section-h"><h2>Unpaid bills</h2><span class="faint" style="font-size:var(--f-sm)">Payments clear the oldest first</span></div>
+  <% if @open.any? %>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Bill</th><th>Date</th><th class="num hide-sm">Bill amount</th><th class="num">Still due</th></tr></thead>
+    <tbody><% @open.each do |o| %><tr><td class="nowrap"><strong><%= o[:ref] %></strong></td><td class="nowrap"><%= o[:date].strftime("%d %b") %><br><span class="faint" style="font-size:var(--f-xs)"><%= days_ago(o[:date]) %></span></td>
+      <td class="num hide-sm"><%= rs o[:amount] %></td><td class="num due"><strong><%= rs o[:due] %></strong></td></tr><% end %></tbody>
+  </table></div>
+  <% else %><div class="panel all-clear"><%= icon(:check) %>Nothing due. All bills are paid.</div><% end %>
+</section>
+
+<section class="section">
+  <div class="section-h"><h2>Ledger</h2></div>
+  <% if @entries.any? %>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Date</th><th>Entry</th><th class="num hide-sm">Debit</th><th class="num hide-sm">Credit</th><th class="num only-sm">Amount</th><th class="num">Balance</th><th class="hide-md">By</th></tr></thead>
+    <tbody>
+    <% run = 0 %>
+    <% @entries.each do |e| run += e.debit_paise - e.credit_paise %>
+    <tr><td class="nowrap"><%= e.date.strftime("%d %b") %><span class="hide-sm"> <%= e.date.strftime("%y") %></span></td><td><%= e.kind.to_s.start_with?("payment") ? "Payment" : e.kind.humanize %><br><span class="faint" style="font-size:var(--f-xs)"><%= e.ref %></span></td>
+      <td class="num hide-sm"><%= rs e.debit_paise if e.debit_paise.positive? %></td><td class="num good hide-sm"><%= rs e.credit_paise if e.credit_paise.positive? %></td>
+      <td class="num only-sm <%= 'good' if e.credit_paise.positive? %>"><%= e.credit_paise.positive? ? "−#{rs0 e.credit_paise}" : "+#{rs0 e.debit_paise}" %></td>
+      <td class="num"><strong><span class="hide-sm"><%= rs run %></span><span class="only-sm"><%= rs0 run %></span></strong></td><td class="hide-md faint"><%= e.user.name %></td></tr>
+    <% end %>
+    </tbody>
+  </table></div>
+  <% else %><div class="panel empty"><strong>No entries yet</strong><p>Bills and payments for this shop will show here.</p></div><% end %>
+</section>

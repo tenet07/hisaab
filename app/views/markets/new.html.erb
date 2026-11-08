@@ -1,0 +1,13 @@
+<% content_for :title, "New market" %>
+<%= back_link "Markets", markets_path %>
+<header class="ph"><h1>New market</h1></header>
+<%= form_with model: @market, class: "form panel panel-pad" do |f| %>
+  <% if @market.errors.any? %><div class="errors" role="alert"><%= @market.errors.full_messages.to_sentence %></div><% end %>
+  <div class="field"><%= f.label :name, class: "lbl" %><%= f.text_field :name, required: true %></div>
+  <div class="field"><%= f.label :delivery_day, class: "lbl" %><%= f.select :delivery_day, %w[Mon Tue Wed Thu Fri Sat Sun] %></div>
+  <div class="fields two">
+    <div class="field"><%= f.label :salesman_id, "Salesman", class: "lbl" %><%= f.collection_select :salesman_id, User.where(role: "salesman"), :id, :name, include_blank: true %></div>
+    <div class="field"><%= f.label :delivery_person_id, "Delivery person", class: "lbl" %><%= f.collection_select :delivery_person_id, User.where(role: "delivery"), :id, :name, include_blank: true %></div>
+  </div>
+  <%= f.submit "Add market", class: "btn btn-lg" %>
+<% end %>

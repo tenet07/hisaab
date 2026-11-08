@@ -1,0 +1,22 @@
+<%# Payment form with one-tap amounts. Posts the same params as before: amount, mode, ref, note. %>
+<% c = customer; bal = c.balance_paise; oldest = open_items.first %>
+<%= form_with url: customer_payments_path(c), class: "form", data: { controller: "fill" } do |f| %>
+  <div class="field"><label class="lbl" for="pay_amount_<%= c.id %>">Amount received</label>
+    <div class="money-in big"><%= f.text_field :amount, id: "pay_amount_#{c.id}", inputmode: "decimal", required: true, autocomplete: "off",
+          placeholder: "0", autofocus: local_assigns[:autofocus], data: { fill_target: "input" } %></div>
+    <% if bal.positive? %>
+    <div class="chips" role="group" aria-label="Quick amounts">
+      <% if oldest && oldest[:due] != bal %><button type="button" class="chip" data-action="fill#set" data-value="<%= rs_input oldest[:due] %>">Oldest bill <%= rs0 oldest[:due] %></button><% end %>
+      <button type="button" class="chip" data-action="fill#set" data-value="<%= rs_input bal %>">Full <%= rs0 bal %></button>
+    </div>
+    <% end %>
+  </div>
+  <div class="field"><span class="lbl">Paid by</span>
+    <div class="seg"><% [["Cash", "cash"], ["UPI", "upi"], ["Cheque", "cheque"]].each_with_index do |(l, v), i| %>
+      <label><%= radio_button_tag :mode, v, i.zero?, id: "mode_#{v}_#{c.id}" %><span><%= l %></span></label><% end %></div></div>
+  <div class="fields two">
+    <div class="field"><label class="lbl" for="ref_<%= c.id %>">UPI / cheque reference <span class="hint">optional</span></label><%= f.text_field :ref, id: "ref_#{c.id}", autocomplete: "off" %></div>
+    <div class="field"><label class="lbl" for="note_<%= c.id %>">Note <span class="hint">optional</span></label><%= f.text_field :note, id: "note_#{c.id}", autocomplete: "off" %></div>
+  </div>
+  <%= f.submit "Save payment", class: "btn btn-lg btn-block" %>
+<% end %>

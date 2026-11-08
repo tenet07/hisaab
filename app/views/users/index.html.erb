@@ -1,0 +1,16 @@
+<% content_for :title, "Staff" %>
+<header class="ph">
+  <div><h1>Staff</h1><p class="sub">Each person has their own login, so every bill, payment and delivery shows who did it.</p></div>
+  <div class="ph-actions"><%= link_to new_user_path, class: "btn" do %><%= icon(:plus, size: 20) %>Add staff<% end %></div>
+</header>
+<ul class="list">
+  <% @users.each do |u| %>
+  <li><%= link_to edit_user_path(u), class: "row-link" do %>
+    <span class="avatar" aria-hidden="true" style="<%= 'opacity:.5' unless u.active %>"><%= initials(u.name) %></span>
+    <span class="row-main"><span class="row-title"><%= u.name %><%= " (you)" if u == current_user %></span><br><span class="row-sub"><%= role_name(u) %></span></span>
+    <span class="row-end"><% if u.active %><span class="pill ok">Active</span><% else %><span class="pill due">No access</span><% end %></span>
+    <%= icon(:chevron, size: 18, cls: "chev") %>
+  <% end %></li>
+  <% end %>
+</ul>
+<div class="note section"><%= icon(:alert, size: 18) %><p>When someone leaves, turn off their access instead of deleting them. Their past entries stay with their name.</p></div>

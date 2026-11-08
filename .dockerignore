@@ -1,0 +1,13 @@
+/.git
+/.env*
+/backups
+/log/*
+/tmp/*
+/storage/*
+/vendor/bundle
+/node_modules
+/config/master.key
+/config/credentials/*.key
+/test
+/coverage
+*.zip

@@ -1,0 +1,17 @@
+<% content_for :title, "Replacement" %>
+<%= back_link (@customer ? @customer.name : "Replacements"), (@customer ? (current_user.field? ? visit_customer_path(@customer) : customer_path(@customer)) : replacements_path) %>
+<header class="ph"><div><h1>Replacement</h1><p class="sub">Give a good piece from the shelf. The defective one is kept for the brand claim.</p></div></header>
+<%= form_with url: replacements_path, class: "form panel panel-pad" do |f| %>
+  <div class="field"><label class="lbl" for="customer_id">Customer</label>
+    <%= f.select :customer_id, @customers.map { |c| [c.name, c.id] }, { selected: @customer&.id, prompt: "Choose shop" }, required: true, id: "customer_id" %></div>
+  <div class="field"><label class="lbl" for="product_id">Item</label>
+    <%= f.select :product_id, @products.map { |p| ["#{p.brand} #{p.name} (#{p.sku}) · #{p.warranty_months} months warranty", p.id] }, { prompt: "Choose item" }, required: true, id: "product_id" %></div>
+  <div class="fields two">
+    <div class="field"><label class="lbl" for="qty">Quantity</label><%= f.number_field :qty, value: 1, min: 1, id: "qty", inputmode: "numeric" %></div>
+    <div class="field"><label class="lbl" for="sold_on">Sold on <span class="hint">date on the bill</span></label><%= f.date_field :sold_on, required: true, id: "sold_on", max: Date.current %></div>
+  </div>
+  <div class="field"><label class="lbl" for="invoice_number">Bill number <span class="hint">optional</span></label><%= f.text_field :invoice_number, id: "invoice_number" %></div>
+  <div class="field"><label class="lbl" for="note">What's wrong <span class="hint">optional</span></label><%= f.text_field :note, id: "note", placeholder: "e.g. not lighting, flickering" %></div>
+  <% if current_user.owner? %><label class="check"><%= f.check_box :override, {}, "1", "0" %> Approve even if out of warranty</label><% end %>
+  <%= f.submit "Swap and log defective", class: "btn btn-lg" %>
+<% end %>

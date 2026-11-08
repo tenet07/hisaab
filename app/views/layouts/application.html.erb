@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title><%= [content_for(:title), shop_name].compact.join(" · ") %></title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f5132" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0c1511" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+  <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+  <%= javascript_importmap_tags %>
+</head>
+<body class="<%= current_user ? "signed-in role-#{current_user.role}" : "signed-out" %>">
+  <a href="#main" class="skip">Skip to content</a>
+  <% if current_user %>
+  <% items = nav_items %>
+  <% tabs, more = current_user.field? || items.size <= 5 ? [items.first(5), items.drop(5)] : [items.first(4), items.drop(4)] %>
+
+  <%# Desktop: sidebar with every section %>
+  <aside class="side" aria-label="Main">
+    <%= link_to root_path, class: "side-brand" do %><%= icon(:bulb, size: 24) %><span><%= shop_name %></span><% end %>
+    <nav class="side-nav">
+      <% items.each do |label, path, ic, match| %><%= nav_link label, path, ic, match: match %><% end %>
+    </nav>
+    <div class="side-who">
+      <span class="avatar" aria-hidden="true"><%= initials(current_user.name) %></span>
+      <span><strong><%= current_user.name %></strong><br><small><%= role_name(current_user) %></small></span>
+      <%= link_to edit_pin_path, class: "icon-btn", title: "Change my PIN", aria: { label: "Change my PIN" } do %><%= icon(:key, size: 20) %><% end %>
+      <%= button_to session_path, method: :delete, class: "icon-btn", title: "Log out", aria: { label: "Log out" } do %><%= icon(:logout, size: 20) %><% end %>
+    </div>
+  </aside>
+
+  <%# Phone: slim top bar + bottom tab bar %>
+  <header class="topbar">
+    <%= link_to root_path, class: "top-brand" do %><%= icon(:bulb, size: 20) %><span><%= shop_name %></span><% end %>
+    <details class="who-menu">
+      <summary aria-label="Account: <%= current_user.name %>"><span class="avatar" aria-hidden="true"><%= initials(current_user.name) %></span></summary>
+      <div class="who-pop">
+        <p><strong><%= current_user.name %></strong><br><span class="muted"><%= role_name(current_user) %></span></p>
+        <%= link_to edit_pin_path, class: "btn btn-secondary btn-block" do %><%= icon(:key, size: 18) %><span>Change my PIN</span><% end %>
+        <%= button_to "Log out", session_path, method: :delete, class: "btn btn-secondary btn-block" %>
+      </div>
+    </details>
+  </header>
+  <% end %>
+
+  <main id="main" class="<%= content_for?(:main_class) ? yield(:main_class) : '' %>">
+    <% if notice %><div class="flash flash-ok" role="status"><%= icon(:check, size: 20) %><span><%= notice %></span></div><% end %>
+    <% if alert %><div class="flash flash-bad" role="alert"><%= icon(:alert, size: 20) %><span><%= alert %></span></div><% end %>
+    <% if flash[:whatsapp] %>
+      <div class="flash flash-wa" role="status"><%= icon(:chat, size: 20) %><span>Send the receipt to the customer.</span>
+        <%= link_to "Open WhatsApp", flash[:whatsapp], target: "_blank", rel: "noopener", class: "btn btn-wa btn-sm" %></div>
+    <% end %>
+    <%= yield %>
+  </main>
+  <% if current_user %>
+  <nav class="tabbar" aria-label="Main">
+    <% tabs.each do |label, path, ic, match| %><%= nav_link label, path, ic, match: match, short: true %><% end %>
+    <% if more.any? %>
+    <details class="tab-more">
+      <summary class="nav-i <%= 'on' if more.any? { _4.call } %>"><%= icon(:more) %><span>More</span></summary>
+      <div class="more-sheet">
+        <% more.each do |label, path, ic, match| %><%= nav_link label, path, ic, match: match %><% end %>
+      </div>
+    </details>
+    <% end %>
+  </nav>
+  <% end %>
+</body>
+</html>

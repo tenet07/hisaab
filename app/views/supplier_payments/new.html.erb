@@ -1,0 +1,25 @@
+<% s = @supplier %>
+<% content_for :title, "Pay #{s.name}" %>
+<%= back_link s.name, supplier_path(s) %>
+<header class="ph"><div><h1>Pay supplier</h1><p class="sub"><%= s.name %></p></div></header>
+<div class="grid grid-side">
+  <%= form_with url: supplier_supplier_payments_path(s), class: "form panel panel-pad", data: { controller: "fill" } do |f| %>
+    <div class="field"><label class="lbl" for="amount">Amount</label>
+      <div class="money-in big"><%= f.text_field :amount, id: "amount", inputmode: "decimal", required: true, autofocus: true, data: { fill_target: "input" } %></div>
+      <% if s.payable_paise.positive? %>
+      <div class="chips mt" role="group" aria-label="Quick amounts">
+        <% if (first = s.unpaid_bills.first) %><button type="button" class="chip" data-action="fill#set" data-value="<%= rs_input first[:due] %>">Oldest <%= rs0 first[:due] %></button><% end %>
+        <button type="button" class="chip" data-action="fill#set" data-value="<%= rs_input s.payable_paise %>">All <%= rs0 s.payable_paise %></button>
+      </div>
+      <% end %></div>
+    <div class="field"><span class="lbl">How</span>
+      <div class="seg"><% [["UPI / bank", "upi"], ["Cheque", "cheque"], ["Cash", "cash"]].each_with_index do |(l, v), i| %>
+        <label><%= radio_button_tag :mode, v, i.zero? %><span><%= l %></span></label><% end %></div></div>
+    <div class="fields two">
+      <div class="field"><label class="lbl" for="ref">UTR / cheque no.</label><%= f.text_field :ref, id: "ref" %><span class="hint">Needed for UPI and cheque</span></div>
+      <div class="field"><label class="lbl" for="date">Date</label><%= f.date_field :date, value: Date.current, id: "date" %></div>
+    </div>
+    <%= f.submit "Save payment", class: "btn btn-lg" %>
+  <% end %>
+  <section class="panel hero"><div class="k">You owe now</div><%= amt s.payable_paise, tone: ("due" if s.payable_paise.positive?), size: "lg" %></section>
+</div>

@@ -1,0 +1,36 @@
+<% content_for :title, "Bills" %>
+<% live = @invoices.reject(&:cancelled?) %>
+<header class="ph">
+  <div><h1>Bills</h1><p class="sub"><%= @date == Date.current ? "Today" : @date.strftime("%A") %>, <%= @date.strftime("%d %b %Y") %></p></div>
+  <% if current_user.can_bill? %><div class="ph-actions"><%= link_to new_invoice_path, class: "btn" do %><%= icon(:plus, size: 20) %>New bill<% end %></div><% end %>
+</header>
+<div class="split" style="margin-bottom:var(--s4)">
+  <div class="chips">
+    <%= link_to "‹ Previous day", invoices_path(date: @date - 1), class: "chip" %>
+    <% unless @date == Date.current %><%= link_to "Today", invoices_path, class: "chip" %><% end %>
+    <% if @date < Date.current %><%= link_to "Next day ›", invoices_path(date: @date + 1), class: "chip" %><% end %>
+  </div>
+  <%= form_with url: invoices_path, method: :get, class: "chips" do |f| %>
+    <%= f.date_field :date, value: @date, aria: { label: "Pick a date" }, style: "width:auto;min-height:40px", onchange: "this.form.requestSubmit()" %>
+  <% end %>
+</div>
+<div class="stats s3" style="margin-bottom:var(--s4)">
+  <div class="stat"><div class="k">Billed</div><div class="v"><%= amt live.sum(&:total_paise) %></div></div>
+  <div class="stat"><div class="k">Bills</div><div class="v"><span class="amt"><%= live.size %></span></div></div>
+  <div class="stat"><div class="k">Cancelled</div><div class="v"><span class="amt"><%= @invoices.size - live.size %></span></div></div>
+</div>
+<% if @invoices.any? %>
+<ul class="list">
+  <% @invoices.each do |i| %>
+  <li><%= link_to i, class: "row-link" do %>
+    <span class="row-main"><span class="row-title"><%= i.customer.name %></span><br><span class="row-sub"><%= i.number %> · <%= i.customer.market.name %></span></span>
+    <span class="row-end"><% if i.cancelled? %><s class="faint tnum"><%= rs i.total_paise %></s><br><span class="pill due">Cancelled</span>
+      <% else %><%= amt i.total_paise %><% if i.needs_eway_bill? %><br><span class="pill warn">E-way bill</span><% end %><% end %></span>
+    <%= icon(:chevron, size: 18, cls: "chev") %>
+  <% end %></li>
+  <% end %>
+</ul>
+<% else %>
+<div class="panel empty"><%= icon(:bill, size: 32) %><strong>No bills on this day</strong>
+  <% if current_user.can_bill? %><p>Bills you make will show here.</p><%= link_to "Make a bill", new_invoice_path, class: "btn" %><% end %></div>
+<% end %>

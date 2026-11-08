@@ -1,0 +1,31 @@
+<% content_for :title, "End of day" %>
+<%= back_link "Dispatch", deliveries_path(date: @date) %>
+<header class="ph"><div><h1>End of day</h1><p class="sub"><%= @date.strftime("%A, %d %b %Y") %> · check cash and returned goods for each person</p></div></header>
+<div class="chips" style="margin-bottom:var(--s4)">
+  <%= link_to "‹ Previous day", summary_deliveries_path(date: @date - 1), class: "chip" %>
+  <% unless @date == Date.current %><%= link_to "Today", summary_deliveries_path, class: "chip" %><% end %>
+  <%= form_with url: summary_deliveries_path, method: :get do |f| %><%= f.date_field :date, value: @date, aria: { label: "Pick a date" }, style: "width:auto;min-height:40px", onchange: "this.form.requestSubmit()" %><% end %>
+</div>
+<% if @rows.empty? %><div class="panel empty"><strong>No deliveries on this day</strong></div><% end %>
+<div class="grid grid-2">
+<% @rows.each do |r| %>
+<section class="panel">
+  <div class="panel-pad split" style="padding-bottom:var(--s3)"><h2><%= r[:person]&.name || "Not assigned" %></h2><span class="faint" style="font-size:var(--f-sm)"><%= pluralize(r[:total], "stop") %></span></div>
+  <div class="stats" style="border-radius:0;border-left:0;border-right:0;box-shadow:none">
+    <div class="stat"><div class="k">Cash to hand in</div><div class="v"><%= amt r[:cash], size: "md" %></div></div>
+    <div class="stat"><div class="k">UPI / cheque</div><div class="v"><%= amt r[:upi], size: "md" %></div></div>
+  </div>
+  <div class="panel-pad">
+    <div class="chips"><span class="pill ok"><%= r[:delivered] %> delivered</span><span class="pill warn"><%= r[:partly] %> partly</span>
+      <span class="pill due"><%= r[:failed].size %> not delivered</span><span class="pill info"><%= r[:open].size %> still open</span></div>
+    <% if r[:failed].any? || r[:open].any? || r[:credits].any? %>
+    <h3 class="mt" style="font-size:var(--f-sm)">Goods that should come back</h3>
+    <ul style="margin:var(--s2) 0 0;padding-left:1.1em;font-size:var(--f-sm)" class="stack-sm">
+      <% (r[:failed] + r[:open]).each do |d| %><li><%= link_to d.invoice.number, d %> · <%= d.invoice.customer.name %> (all items) — <span class="muted"><%= d.note.presence || d.status.humanize %></span></li><% end %>
+      <% r[:credits].each do |cn| %><li><%= cn.number %> · <span class="muted"><%= cn.reason %></span></li><% end %>
+    </ul>
+    <% else %><p class="good mt mb0" style="font-weight:650">Nothing to bring back.</p><% end %>
+  </div>
+</section>
+<% end %>
+</div>

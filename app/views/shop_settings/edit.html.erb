@@ -1,0 +1,58 @@
+<% s = @settings; labels = { sales: "Sales", cgst: "Output CGST", sgst: "Output SGST", igst: "Output IGST", round_off: "Round off",
+     cash: "Cash", bank: "Bank", purchase: "Purchases", in_cgst: "Input CGST", in_sgst: "Input SGST", in_igst: "Input IGST", claims: "Warranty claims" } %>
+<% content_for :title, "Shop settings" %>
+<header class="ph"><div><h1>Shop settings</h1><p class="sub">Printed on every bill and used for GST and Tally. Only the owner can change these.</p></div>
+  <div class="ph-actions"><%= link_to "Backups", backups_path, class: "btn btn-secondary" %>
+  <% if Invoice.exists? %><%= link_to "Preview a bill", invoice_path(Invoice.order(:id).last, print: 1), class: "btn btn-secondary", target: "_blank" %><% end %></div></header>
+<%= form_with model: s, url: settings_path, method: :patch, class: "form wide stack" do |f| %>
+  <% if s.errors.any? %><div class="errors" role="alert"><%= s.errors.full_messages.to_sentence %></div><% end %>
+
+  <section class="panel panel-pad">
+    <h2>Shop</h2>
+    <div class="field"><%= f.label :name, "Shop name (as registered for GST)", class: "lbl" %><%= f.text_field :name, required: true %></div>
+    <div class="field"><%= f.label :address, class: "lbl" %><%= f.text_area :address, rows: 3, placeholder: "Shop no., street\nArea, city, PIN" %></div>
+    <div class="fields two">
+      <div class="field"><%= f.label :phone, class: "lbl" %><%= f.telephone_field :phone, inputmode: "tel" %></div>
+      <div class="field"><%= f.label :email, class: "lbl" %><%= f.email_field :email %></div>
+    </div>
+  </section>
+
+  <section class="panel panel-pad">
+    <h2>GST and bill numbers</h2>
+    <div class="fields two">
+      <div class="field"><%= f.label :gstin, "GSTIN", class: "lbl" %><%= f.text_field :gstin, autocapitalize: "characters", maxlength: 15 %><span class="hint">Sets your state automatically</span></div>
+      <div class="field"><%= f.label :state_code, "State", class: "lbl" %><%= f.select :state_code, Shop::STATES.map { |c, n| ["#{n} (#{c})", c] } %><span class="hint">Customers in other states are billed IGST</span></div>
+    </div>
+    <div class="fields two">
+      <div class="field"><%= f.label :invoice_prefix, "Bill number prefix", class: "lbl" %><%= f.text_field :invoice_prefix, maxlength: 4, autocapitalize: "characters" %>
+        <span class="hint">Bills look like <strong><%= s.invoice_prefix %>/<%= Date.current.month >= 4 ? Date.current.year % 100 : Date.current.year % 100 - 1 %>-<%= (Date.current.month >= 4 ? Date.current.year % 100 : Date.current.year % 100 - 1) + 1 %>/00001</strong>. Numbers restart each April. Changing it mid-year starts a new series.</span></div>
+      <div class="field"><%= f.label :credit_note_prefix, "Credit note prefix", class: "lbl" %><%= f.text_field :credit_note_prefix, maxlength: 4, autocapitalize: "characters" %></div>
+    </div>
+  </section>
+
+  <section class="panel panel-pad">
+    <h2>Getting paid</h2>
+    <p class="muted" style="font-size:var(--f-sm)">Printed on bills. With a UPI ID, every bill gets a QR code that fills in the exact amount.</p>
+    <div class="field"><%= f.label :upi_id, "UPI ID", class: "lbl" %><%= f.text_field :upi_id, placeholder: "shopname@okhdfcbank", autocapitalize: "none" %></div>
+    <div class="fields" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <div class="field"><%= f.label :bank_name, "Bank", class: "lbl" %><%= f.text_field :bank_name %></div>
+      <div class="field"><%= f.label :bank_account, "Account no.", class: "lbl" %><%= f.text_field :bank_account, inputmode: "numeric" %></div>
+      <div class="field"><%= f.label :bank_ifsc, "IFSC", class: "lbl" %><%= f.text_field :bank_ifsc, autocapitalize: "characters", maxlength: 11 %></div>
+    </div>
+    <div class="field"><%= f.label :bill_terms, "Terms printed at the bottom of bills", class: "lbl" %><%= f.text_area :bill_terms, rows: 3, placeholder: "Goods once sold will not be taken back.\nWarranty as per manufacturer.\nSubject to Gurgaon jurisdiction." %></div>
+  </section>
+
+  <section class="panel panel-pad">
+    <h2>Tally</h2>
+    <p class="muted" style="font-size:var(--f-sm)">Must match your CA's Tally company exactly. Leave a ledger blank to use the name shown.</p>
+    <div class="field"><%= f.label :tally_company, "Company name in Tally", class: "lbl" %><%= f.text_field :tally_company, placeholder: s.name %></div>
+    <div class="fields" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+      <% Shop::TallyExport::DEFAULT_LEDGERS.each do |key, default| %>
+      <div class="field"><label class="lbl" for="tl_<%= key %>"><%= labels[key] || key.to_s.humanize %></label>
+        <%= text_field_tag "shop_setting[tally_ledgers][#{key}]", (s.tally_ledgers || {})[key.to_s], id: "tl_#{key}", placeholder: default %></div>
+      <% end %>
+    </div>
+  </section>
+
+  <div class="actionbar"><span class="muted hide-sm">Changes apply to new bills. Old bills keep the details they were made with.</span><%= f.submit "Save settings", class: "btn btn-lg" %></div>
+<% end %>

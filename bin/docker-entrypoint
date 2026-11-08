@@ -1,0 +1,7 @@
+#!/bin/bash -e
+# Bring the database up to date before the app starts (creates it on first boot).
+# Matches the Dockerfile CMD: ./bin/rails server ...
+if [ "$1" == "./bin/rails" ] && [ "$2" == "server" ]; then
+  ./bin/rails db:prepare
+fi
+exec "${@}"

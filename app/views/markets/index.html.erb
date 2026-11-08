@@ -1,0 +1,15 @@
+<% content_for :title, "Markets" %>
+<header class="ph"><div><h1>Markets</h1><p class="sub">Each market has a fixed delivery day and staff.</p></div>
+  <% if current_user.office? %><div class="ph-actions"><%= link_to new_market_path, class: "btn" do %><%= icon(:plus, size: 20) %>Add market<% end %></div><% end %></header>
+<% if @markets.any? %>
+<ul class="list">
+  <% @markets.each do |m| %>
+  <li><%= link_to customers_path(market_id: m.id), class: "row-link" do %>
+    <span class="lead-num" aria-hidden="true"><%= m.delivery_day %></span>
+    <span class="row-main"><span class="row-title"><%= m.name %></span><br><span class="row-sub">Salesman: <%= m.salesman&.name || "none" %> · Delivery: <%= m.delivery_person&.name || "none" %></span></span>
+    <span class="row-end"><strong class="tnum"><%= m.customers.size %></strong><br><span class="row-sub">shops</span></span>
+    <%= icon(:chevron, size: 18, cls: "chev") %>
+  <% end %></li>
+  <% end %>
+</ul>
+<% else %><div class="panel empty"><strong>No markets yet</strong><p>Add your first market to group customers and plan deliveries.</p></div><% end %>

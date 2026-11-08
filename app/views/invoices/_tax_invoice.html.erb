@@ -1,0 +1,79 @@
+<%# A GST tax invoice (Rule 46): supplier and recipient details, place of supply, HSN, tax split, amount in words. %>
+<% inv = invoice; s = inv.seller_details; b = inv.buyer_details; summary = inv.hsn_tax_summary %>
+<article class="doc tax-invoice" aria-label="Tax invoice">
+  <header class="ti-head">
+    <div class="ti-seller">
+      <h2><%= s[:name] %></h2>
+      <% s[:address].to_s.lines.map(&:strip).reject(&:empty?).each do |l| %><div><%= l %></div><% end %>
+      <div><%= ["Ph #{s[:phone]}".presence && (s[:phone].present? ? "Ph #{s[:phone]}" : nil), s[:email].presence].compact.join(" · ") %></div>
+      <% if s[:gstin].present? %><div><strong>GSTIN <%= s[:gstin] %></strong></div><% end %>
+      <div class="muted">State: <%= state_label(s[:state_code]) %></div>
+    </div>
+    <div class="ti-title">
+      <div class="ti-kind"><%= inv.cancelled? ? "CANCELLED" : "TAX INVOICE" %></div>
+      <dl class="ti-meta">
+        <div><dt>Invoice no.</dt><dd><strong><%= inv.number %></strong></dd></div>
+        <div><dt>Date</dt><dd><%= inv.date.strftime("%d-%m-%Y") %></dd></div>
+        <div><dt>Place of supply</dt><dd><%= state_label(inv.place_of_supply) %></dd></div>
+        <div><dt>Reverse charge</dt><dd>No</dd></div>
+      </dl>
+    </div>
+  </header>
+
+  <section class="ti-buyer">
+    <div class="ti-label">Bill to</div>
+    <strong><%= b[:name] %></strong><%= " (#{b[:owner_name]})" if b[:owner_name].present? %>
+    <% b[:address].to_s.lines.map(&:strip).reject(&:empty?).each do |l| %><div><%= l %></div><% end %>
+    <div><%= b[:gstin].present? ? "GSTIN #{b[:gstin]}" : "Unregistered" %><%= " · Ph #{b[:phone]}" if b[:phone].present? %></div>
+  </section>
+
+  <table class="ti-lines">
+    <thead><tr><th class="num">#</th><th>Item</th><th>HSN</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Disc.</th><th class="num">Taxable</th><th class="num">GST</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+    <% inv.lines.each_with_index do |l, i| %>
+      <tr><td class="num"><%= i + 1 %></td><td><%= l.product.brand %> <%= l.product.name %></td><td><%= l.product.hsn %></td>
+        <td class="num"><%= l.qty %> pcs</td><td class="num"><%= rs l.unit_price_paise %></td><td class="num"><%= rs l.discount_paise if l.discount_paise.positive? %></td>
+        <td class="num"><%= rs l.taxable_paise %></td><td class="num"><%= gst_pct l.gst_bp %></td><td class="num"><%= rs l.total_paise %></td></tr>
+    <% end %>
+    </tbody>
+    <tfoot><tr><td colspan="3"><strong>Total</strong></td><td class="num"><strong><%= inv.lines.sum(&:qty) %> pcs</strong></td><td colspan="2"></td>
+      <td class="num"><strong><%= rs inv.taxable_paise %></strong></td><td></td><td class="num"><strong><%= rs inv.taxable_paise + inv.tax_paise %></strong></td></tr></tfoot>
+  </table>
+
+  <div class="ti-bottom">
+    <table class="ti-hsn">
+      <thead><tr><th>HSN</th><th class="num">Taxable</th>
+        <% if inv.intra_state %><th class="num">CGST</th><th class="num">SGST</th><% else %><th class="num">IGST</th><% end %></tr></thead>
+      <tbody><% summary.each do |r| half = r[:gst_bp] / 2.0 %>
+        <tr><td><%= r[:hsn] %></td><td class="num"><%= rs r[:taxable] %></td>
+          <% if inv.intra_state %><td class="num"><%= rs r[:cgst] %> <span class="muted">@<%= rate_pct half %></span></td><td class="num"><%= rs r[:sgst] %> <span class="muted">@<%= rate_pct half %></span></td>
+          <% else %><td class="num"><%= rs r[:igst] %> <span class="muted">@<%= rate_pct r[:gst_bp] %></span></td><% end %></tr>
+      <% end %></tbody>
+    </table>
+    <dl class="ti-totals">
+      <div><dt>Taxable value</dt><dd><%= rs inv.taxable_paise %></dd></div>
+      <% if inv.intra_state %><div><dt>CGST</dt><dd><%= rs inv.cgst_paise %></dd></div><div><dt>SGST</dt><dd><%= rs inv.sgst_paise %></dd></div>
+      <% else %><div><dt>IGST</dt><dd><%= rs inv.igst_paise %></dd></div><% end %>
+      <% unless inv.round_off_paise.zero? %><div><dt>Round off</dt><dd><%= rs inv.round_off_paise %></dd></div><% end %>
+      <div class="ti-grand"><dt>Bill total</dt><dd><%= rs inv.total_paise %></dd></div>
+    </dl>
+  </div>
+  <p class="ti-words"><strong>Amount in words:</strong> <%= Shop::Money.words(inv.total_paise) %></p>
+
+  <footer class="ti-foot">
+    <div class="ti-pay">
+      <% if s[:upi_id].present? && !inv.cancelled? %>
+        <div class="ti-qr"><%= upi_qr_svg(upi_uri(s[:upi_id], s[:name], inv.total_paise, inv.number)) %>
+          <div><strong>Scan to pay <%= rs inv.total_paise %></strong><br><span class="muted">UPI: <%= s[:upi_id] %></span></div></div>
+      <% end %>
+      <% if s[:bank_account].present? %>
+        <div class="ti-bank"><strong>Bank:</strong> <%= s[:bank_name] %> · A/c <%= s[:bank_account] %><%= " · IFSC #{s[:bank_ifsc]}" if s[:bank_ifsc].present? %></div>
+      <% end %>
+      <% if s[:bill_terms].present? %><ol class="ti-terms"><% s[:bill_terms].to_s.lines.map(&:strip).reject(&:empty?).each do |t| %><li><%= t %></li><% end %></ol><% end %>
+    </div>
+    <div class="ti-sign">For <strong><%= s[:name] %></strong><div class="ti-sign-space"></div>Authorised signatory</div>
+  </footer>
+  <% if inv.credit_notes.any? %>
+  <div class="doc-foot"><% inv.credit_notes.each do |cn| %><div>Credit note <%= cn.number %> of <%= cn.date.strftime("%d-%m-%Y") %>: <strong><%= rs cn.total_paise %></strong> — <%= cn.reason %></div><% end %></div>
+  <% end %>
+</article>

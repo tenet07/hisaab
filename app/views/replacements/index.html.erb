@@ -1,0 +1,16 @@
+<% content_for :title, "Replacements" %>
+<header class="ph">
+  <div><h1>Replacements</h1><p class="sub">Defective pieces swapped for customers. They wait in "awaiting claim" until sent to the brand.</p></div>
+  <div class="ph-actions"><%= link_to new_replacement_path, class: "btn" do %><%= icon(:plus, size: 20) %>New replacement<% end %></div>
+</header>
+<% if @replacements.any? %>
+<ul class="list">
+  <% @replacements.each do |r| %>
+  <li class="row-static"><span class="row-main"><span class="row-title"><%= r.product.brand %> <%= r.product.name %></span><br>
+    <span class="row-sub"><%= r.customer.name %> · <%= r.created_at.strftime("%d %b") %> · by <%= r.user.name %></span></span>
+    <span class="row-end"><strong class="tnum">× <%= r.qty %></strong><br><% if r.in_warranty %><span class="pill ok">In warranty</span><% else %><span class="pill warn">Owner approved</span><% end %></span></li>
+  <% end %>
+</ul>
+<% else %>
+<div class="panel empty"><%= icon(:swap, size: 32) %><strong>No replacements yet</strong><p>When a customer brings back a defective piece, log the swap here.</p><%= link_to "New replacement", new_replacement_path, class: "btn" %></div>
+<% end %>

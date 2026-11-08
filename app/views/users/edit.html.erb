@@ -1,0 +1,4 @@
+<% content_for :title, "Edit #{@user.name}" %>
+<%= back_link "Staff", users_path %>
+<header class="ph"><div><h1><%= @user.name %></h1><p class="sub"><%= role_name(@user) %></p></div></header>
+<%= render "form" %>

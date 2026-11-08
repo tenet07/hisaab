@@ -1,0 +1,67 @@
+<% c = @invoice.customer; printing = params[:print].present? %>
+<% content_for :title, "Bill #{@invoice.number}" %>
+<% unless printing %>
+<%= back_link c.name, (current_user.field? ? visit_customer_path(c) : customer_path(c)) %>
+<header class="ph">
+  <div><h1><%= @invoice.number %> <% if @invoice.cancelled? %><span class="pill due">Cancelled</span><% end %></h1>
+    <p class="sub"><%= c.name %> · <%= @invoice.date.strftime("%d %b %Y") %> · made by <%= @invoice.created_by.name %> (<%= @invoice.channel %>) at <%= @invoice.created_at.strftime("%H:%M") %></p></div>
+  <div class="ph-actions">
+    <% if (wa = wa_link(c, invoice_message(@invoice))) && !@invoice.cancelled? %><%= link_to wa, class: "btn btn-wa", target: "_blank", rel: "noopener" do %><%= icon(:chat, size: 20) %>Send on WhatsApp<% end %><% end %>
+    <%= link_to invoice_path(@invoice, print: 1), class: "btn btn-secondary" do %><%= icon(:print, size: 20) %>Print<% end %>
+  </div>
+</header>
+<% if @invoice.cancelled? %><div class="flash flash-bad" role="status"><%= icon(:x, size: 20) %><span>This bill is cancelled. Stock and balance were reversed.</span></div><% end %>
+<% if @invoice.needs_eway_bill? && !@invoice.cancelled? %><div class="flash flash-warn"><%= icon(:alert, size: 20) %><span>Value above ₹50,000: make an e-way bill before dispatch.</span></div><% end %>
+<% end %>
+
+<div class="<%= printing ? '' : 'grid bill-grid' %>">
+<div>
+<div class="<%= printing ? '' : 'hide-sm' %>"><%= render "invoices/tax_invoice", invoice: @invoice %></div>
+<% unless printing %>
+<article class="doc only-sm" aria-label="Bill summary">
+  <div class="doc-head"><div><h2><%= @invoice.seller_details[:name] %></h2><strong>Tax invoice</strong></div>
+    <div class="to"><strong><%= @invoice.number %></strong><br><%= @invoice.date.strftime("%d %b %Y") %><br><strong><%= c.name %></strong></div></div>
+  <ul class="m-lines">
+    <% @invoice.lines.each do |l| %>
+    <li><span><strong><%= l.product.brand %> <%= l.product.name %></strong><br>
+      <span class="m-sub"><%= l.qty %> × <%= rs l.unit_price_paise %><%= " − #{rs l.discount_paise}" if l.discount_paise.positive? %> · GST <%= gst_pct l.gst_bp %> · HSN <%= l.product.hsn %></span></span>
+      <strong class="tnum"><%= rs l.total_paise %></strong></li>
+    <% end %>
+  </ul>
+  <div class="m-sum">
+    <div><span>Taxable value</span><span class="tnum"><%= rs @invoice.taxable_paise %></span></div>
+    <% if @invoice.intra_state %><div><span>CGST</span><span class="tnum"><%= rs @invoice.cgst_paise %></span></div><div><span>SGST</span><span class="tnum"><%= rs @invoice.sgst_paise %></span></div>
+    <% else %><div><span>IGST</span><span class="tnum"><%= rs @invoice.igst_paise %></span></div><% end %>
+    <% unless @invoice.round_off_paise.zero? %><div><span>Round off</span><span class="tnum"><%= rs @invoice.round_off_paise %></span></div><% end %>
+    <div class="grand"><span>Total</span><span class="tnum"><%= rs @invoice.total_paise %></span></div>
+  </div>
+  <p class="muted" style="padding:0 var(--s4) var(--s4);font-size:var(--f-sm)">Tap Print for the full GST bill with UPI QR.</p>
+</article>
+<% end %>
+</div>
+
+<% unless printing %>
+<aside class="stack">
+  <% if (d = @invoice.delivery) %>
+  <section class="panel panel-pad">
+    <div class="split"><h2>Delivery</h2><%= status_pill(d) %></div>
+    <dl class="kv mt">
+      <dt>Date</dt><dd><%= d.run_date.strftime("%a %d %b") %></dd>
+      <dt>Person</dt><dd><%= d.assigned_to&.name || "Not assigned" %></dd>
+      <% if d.open? %><dt>Customer's code</dt><dd><strong class="tnum" style="font-size:var(--f-md);letter-spacing:.15em"><%= d.otp %></strong></dd><% end %>
+    </dl>
+    <%= link_to "Delivery details", d, class: "btn btn-secondary btn-block mt" %>
+  </section>
+  <% end %>
+  <% if %w[owner accounts].include?(current_user.role) && !@invoice.cancelled? %>
+  <details class="more panel panel-pad" style="margin-top:0;border-top:1px solid var(--line)">
+    <summary>Cancel this bill</summary>
+    <%= form_with url: cancel_invoice_path(@invoice), class: "form", data: { turbo_confirm: "Cancel #{@invoice.number}? Stock and balance will be reversed." } do |f| %>
+      <div class="field"><label class="lbl" for="reason">Reason</label><%= f.text_field :reason, required: true, id: "reason" %></div>
+      <%= f.submit "Cancel bill", class: "btn btn-danger" %>
+    <% end %>
+  </details>
+  <% end %>
+</aside>
+<% end %>
+</div>

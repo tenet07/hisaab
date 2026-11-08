@@ -1,0 +1,45 @@
+<% content_for :title, "Dispatch" %>
+<% open_n = @deliveries.count(&:open?); unassigned = @deliveries.count { _1.open? && _1.assigned_to_id.nil? } %>
+<header class="ph">
+  <div><h1>Dispatch</h1><p class="sub"><%= @date == Date.current ? "Today" : @date.strftime("%A") %>, <%= @date.strftime("%d %b %Y") %> · <%= pluralize(@deliveries.size, "stop") %><%= " · #{unassigned} not assigned" if unassigned.positive? %></p></div>
+  <div class="ph-actions"><%= link_to "End-of-day summary", summary_deliveries_path(date: @date), class: "btn btn-secondary" %></div>
+</header>
+<div class="chips" style="margin-bottom:var(--s4)">
+  <%= link_to "‹ Previous day", deliveries_path(date: @date - 1), class: "chip" %>
+  <% unless @date == Date.current %><%= link_to "Today", deliveries_path, class: "chip" %><% end %>
+  <%= link_to "Next day ›", deliveries_path(date: @date + 1), class: "chip" %>
+  <%= form_with url: deliveries_path, method: :get do |f| %><%= f.date_field :date, value: @date, aria: { label: "Pick a date" }, style: "width:auto;min-height:40px", onchange: "this.form.requestSubmit()" %><% end %>
+</div>
+
+<% if @deliveries.empty? %>
+  <div class="panel empty"><%= icon(:truck, size: 32) %><strong>No deliveries for this day</strong><p>Bills marked "Deliver to the shop" are planned on the market's delivery day.</p></div>
+<% end %>
+<% @by_market.each do |market, ds| %>
+<section class="section" style="margin-top:var(--s6)">
+  <div class="section-h"><h2><%= market.name %></h2><span class="faint" style="font-size:var(--f-sm)"><%= pluralize(ds.size, "stop") %><%= " · usual day #{market.delivery_day}" if market.delivery_day %></span></div>
+  <ul class="list">
+  <% ds.each do |d| %>
+  <li class="row-static" style="flex-wrap:wrap">
+    <span class="row-main" style="min-width:200px">
+      <span class="row-title"><%= link_to d.invoice.customer.name, d, style: "color:inherit;display:inline-block;padding:10px 0;margin:-10px 0" %></span>
+      <% if d.run_date < @date %> <span class="pill due">Carried over</span><% end %><br>
+      <span class="row-sub"><%= d.invoice.number %> · <%= rs0 d.invoice.total_paise %><% if d.status == "failed" && d.note.present? %> · <span class="due"><%= d.note %></span><% end %></span>
+    </span>
+    <%= status_pill(d) %>
+    <span style="flex-basis:100%;height:0" class="only-sm"></span>
+    <% if d.open? %>
+      <%= form_with url: assign_delivery_path(d), method: :patch, class: "chips", style: "flex-wrap:nowrap" do |f| %>
+        <%= f.select :assigned_to_id, [["Not assigned", ""]] + @staff.map { |u| [u.name, u.id] }, { selected: d.assigned_to_id }, aria: { label: "Delivery person for #{d.invoice.number}" }, style: "min-height:40px;width:auto;min-width:140px" %>
+        <%= f.date_field :run_date, value: d.run_date, aria: { label: "Delivery date" }, style: "min-height:40px;width:auto" %><%= f.hidden_field :back_date, value: @date %>
+        <%= f.submit "Save", class: "btn btn-secondary btn-sm" %>
+      <% end %>
+    <% elsif d.status == "failed" %>
+      <%= form_with url: reschedule_delivery_path(d), class: "chips", style: "flex-wrap:nowrap" do |f| %>
+        <%= f.date_field :run_date, value: Date.current + 1, aria: { label: "New date" }, style: "min-height:40px;width:auto" %><%= f.submit "Reschedule", class: "btn btn-lamp btn-sm" %>
+      <% end %>
+    <% else %><span class="faint" style="font-size:var(--f-sm)"><%= d.assigned_to&.name %></span><% end %>
+  </li>
+  <% end %>
+  </ul>
+</section>
+<% end %>

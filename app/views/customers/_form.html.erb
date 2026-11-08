@@ -1,0 +1,25 @@
+<%= form_with model: @customer, class: "form panel panel-pad" do |f| %>
+  <% if @customer.errors.any? %><div class="errors" role="alert"><%= @customer.errors.full_messages.to_sentence %></div><% end %>
+  <div class="field"><%= f.label :name, "Shop name", class: "lbl" %><%= f.text_field :name, required: true %></div>
+  <div class="field"><%= f.label :owner_name, "Owner name", class: "lbl" %><%= f.text_field :owner_name %></div>
+  <div class="field"><%= f.label :address, class: "lbl" %><%= f.text_area :address, rows: 2 %><span class="hint">Printed on bills. Required by GST for registered customers.</span></div>
+  <div class="fields two">
+    <div class="field"><%= f.label :phone, class: "lbl" %><%= f.telephone_field :phone, inputmode: "numeric", maxlength: 10, placeholder: "10 digits" %><span class="hint">Used for WhatsApp bills and reminders</span></div>
+    <div class="field"><%= f.label :gstin, "GSTIN", class: "lbl" %><%= f.text_field :gstin, autocapitalize: "characters" %><span class="hint">Leave empty if not registered</span></div>
+  </div>
+  <div class="fields two">
+    <div class="field"><%= f.label :market_id, "Market", class: "lbl" %><%= f.collection_select :market_id, Market.order(:name), :id, :name %></div>
+    <div class="field"><span class="lbl">Prices</span>
+      <div class="seg"><% [["Wholesale", "wholesale"], ["Retail", "retail"]].each do |l, v| %>
+        <label><%= f.radio_button :price_tier, v %><span><%= l %></span></label><% end %></div></div>
+  </div>
+  <div class="field"><label class="lbl" for="customer_credit_limit">Credit limit</label>
+    <div class="money-in"><%= text_field_tag "customer[credit_limit]", rs_input(@customer.credit_limit_paise), inputmode: "decimal", id: "customer_credit_limit" %></div>
+    <span class="hint">0 or empty means no limit</span></div>
+  <% if @customer.new_record? %>
+  <div class="field"><label class="lbl" for="opening_balance">Opening balance</label>
+    <div class="money-in"><%= text_field_tag :opening_balance, nil, inputmode: "decimal" %></div>
+    <span class="hint">What they owe today. Use a minus sign if you owe them.</span></div>
+  <% end %>
+  <%= f.submit (@customer.new_record? ? "Add customer" : "Save changes"), class: "btn btn-lg" %>
+<% end %>

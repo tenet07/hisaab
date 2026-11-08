@@ -1,0 +1,62 @@
+<% c = @customer; bal = c.balance_paise; oldest = @open.first %>
+<% content_for :title, c.name %>
+<%= back_link "Shops", customers_path(market_id: c.market_id) %>
+<header class="ph" style="margin-bottom:var(--s4)">
+  <div><h1><%= c.name %></h1>
+    <p class="sub"><%= c.market.name %><%= " · #{c.owner_name}" if c.owner_name.present? %></p></div>
+  <% if c.phone.present? %><a class="btn btn-secondary btn-sm" href="tel:+91<%= c.phone %>"><%= icon(:phone, size: 18) %>Call</a><% end %>
+</header>
+
+<div class="grid grid-side">
+<div class="stack">
+  <section class="panel hero" aria-label="Amount due">
+    <div class="k">Amount due</div>
+    <%= amt bal, tone: (bal.positive? ? "due" : "good"), size: "xl" %>
+    <% if c.over_limit? %><p class="mt mb0"><span class="pill due"><%= icon(:alert, size: 14) %>Over credit limit of <%= rs0 c.credit_limit_paise %></span></p><% end %>
+    <dl class="facts">
+      <% if oldest %><div><dt>Oldest unpaid</dt><dd><%= oldest[:ref] %> · <%= oldest[:date].strftime("%d %b") %><br><span class="due"><%= rs oldest[:due] %></span> <span class="faint">· <%= days_ago(oldest[:date]) %></span></dd></div><% end %>
+      <div><dt>Last payment</dt><dd><% if @last_payment %><%= rs @last_payment.amount_paise %> · <%= @last_payment.mode.upcase %><br><span class="faint"><%= @last_payment.date.strftime("%d %b") %>, <%= days_ago(@last_payment.date) %></span><% else %><span class="faint">None yet</span><% end %></dd></div>
+    </dl>
+  </section>
+
+  <nav class="tiles" aria-label="Actions">
+    <% if current_user.can_bill? %><%= link_to new_invoice_path(customer_id: c.id), class: "tile primary" do %><%= icon(:plus) %>New order<% end %><% end %>
+    <a class="tile" href="#collect"><%= icon(:rupee) %>Record payment</a>
+    <%= link_to new_replacement_path(customer_id: c.id), class: "tile" do %><%= icon(:swap) %>Replacement<% end %>
+    <% if (wa = wa_link(c, reminder_message(c))) && bal.positive? %>
+      <%= link_to wa, class: "tile wa", target: "_blank", rel: "noopener" do %><%= icon(:chat) %>WhatsApp reminder<% end %>
+    <% end %>
+  </nav>
+</div>
+
+<section id="collect" class="panel panel-pad" aria-labelledby="collect-h" style="scroll-margin-top:64px">
+  <h2 id="collect-h" style="margin-bottom:var(--s4)">Collect payment</h2>
+  <%= render "payments/quick_form", customer: c, open_items: @open %>
+</section>
+</div>
+
+<section class="section">
+  <div class="section-h"><h2>Last bills</h2></div>
+  <% if @recent.any? %>
+  <ul class="list">
+    <% @recent.each do |i| %>
+    <li><%= link_to i, class: "row-link" do %>
+      <span class="row-main"><span class="row-title"><%= i.number %></span><br><span class="row-sub"><%= i.date.strftime("%d %b") %> · <%= pluralize(i.lines.size, "item") %></span></span>
+      <span class="row-end"><%= amt i.total_paise %></span><%= icon(:chevron, size: 18, cls: "chev") %>
+    <% end %></li>
+    <% end %>
+  </ul>
+  <% else %><div class="panel empty"><strong>No bills yet</strong><p>Take their first order with New order.</p></div><% end %>
+</section>
+
+<section class="section">
+  <div class="section-h"><h2>Recent replacements</h2></div>
+  <% if @replacements.any? %>
+  <ul class="list">
+    <% @replacements.each do |r| %>
+    <li class="row-static"><span class="row-main"><span class="row-title"><%= r.product.brand %> <%= r.product.name %></span><br><span class="row-sub"><%= r.created_at.strftime("%d %b") %></span></span>
+      <span class="row-end tnum"><strong>× <%= r.qty %></strong></span></li>
+    <% end %>
+  </ul>
+  <% else %><div class="panel empty"><strong>No replacements</strong><p>Defective pieces swapped at this shop will show here.</p></div><% end %>
+</section>

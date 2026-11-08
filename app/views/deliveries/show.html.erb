@@ -1,0 +1,118 @@
+<% c = @customer; st = @delivery.status %>
+<% content_for :title, c.name %>
+<%= back_link (current_user.office? ? "Dispatch" : "My run"), (current_user.office? ? deliveries_path(date: @delivery.run_date) : run_deliveries_path) %>
+<header class="ph" style="margin-bottom:var(--s3)">
+  <div><h1><%= c.name %></h1>
+    <p class="sub"><%= c.market.name %><%= " · #{c.owner_name}" if c.owner_name.present? %> · <%= @delivery.invoice.number %><%= " · #{@delivery.assigned_to.name}" if @delivery.assigned_to && current_user.office? %></p></div>
+  <% if c.phone.present? %><a class="btn btn-secondary btn-sm" href="tel:+91<%= c.phone %>"><%= icon(:phone, size: 18) %>Call</a><% end %>
+</header>
+<% if @delivery.attempts.positive? || @delivery.note.present? %>
+  <div class="note" style="margin-bottom:var(--s4)"><%= icon(:alert, size: 18) %><p><%= "Tried #{pluralize(@delivery.attempts, 'time')} before. " if @delivery.attempts.positive? %><%= @delivery.note %></p></div>
+<% end %>
+
+<% if @delivery.open? %>
+<ol class="steps" aria-label="Steps">
+  <li class="<%= st == 'pending' ? 'on' : 'done' %>" <%= 'aria-current=step' if st == 'pending' %>><b><%= st == "pending" ? "1" : "✓" %></b>Load check</li>
+  <li class="<%= 'on' if st == 'loaded' %>" <%= 'aria-current=step' if st == 'loaded' %>><b>2</b>Hand over</li>
+</ol>
+<% end %>
+
+<% case st %>
+<% when "pending" %>
+<%= form_with url: load_delivery_path(@delivery) do |f| %>
+  <section class="panel" aria-labelledby="load-h">
+    <div class="panel-pad" style="padding-bottom:0"><h2 id="load-h">Count items into the vehicle</h2>
+      <p class="muted" style="font-size:var(--f-sm);margin-top:var(--s1)">All counts are filled in from the bill. Change a number only if something is missing.</p></div>
+    <div>
+      <% @items.each do |i| %>
+      <div class="item-row"><div><div class="i-name"><%= i.product.brand %> <%= i.product.name %></div><div class="i-sub">Bill: <%= i.qty %></div></div>
+        <div class="stepper" data-controller="stepper">
+          <button type="button" aria-label="One less" data-action="stepper#dec">−</button>
+          <%= number_field_tag "loaded[#{i.id}]", i.qty, min: 0, max: i.qty, inputmode: "numeric", aria: { label: "Loaded: #{i.product.brand} #{i.product.name}" }, data: { stepper_target: "input" } %>
+          <button type="button" aria-label="One more" data-action="stepper#inc">+</button></div>
+      </div>
+      <% end %>
+    </div>
+  </section>
+  <div class="actionbar"><%= f.submit "All loaded", class: "btn btn-lg btn-block" %></div>
+<% end %>
+
+<% when "loaded" %>
+<%= form_with url: complete_delivery_path(@delivery), multipart: true, data: { turbo: false, controller: "handover", action: "submit->handover#submit" } do |f| %>
+  <section class="panel" aria-labelledby="give-h">
+    <div class="panel-pad" style="padding-bottom:0"><h2 id="give-h">Items handed over</h2>
+      <p class="muted" style="font-size:var(--f-sm);margin-top:var(--s1)">Everything on the vehicle is counted as given. Lower a number only if something is short.</p></div>
+    <div>
+      <% @items.each do |i| %>
+      <div class="item-row" data-handover-target="row" data-billed="<%= i.qty %>">
+        <div><div class="i-name"><%= i.product.brand %> <%= i.product.name %></div><div class="i-sub">On vehicle: <%= i.loaded_qty %><%= " of #{i.qty} billed" if i.loaded_qty.to_i < i.qty %></div></div>
+        <div class="stepper" data-controller="stepper">
+          <button type="button" aria-label="One less" data-action="stepper#dec">−</button>
+          <%= number_field_tag "delivered[#{i.id}]", i.loaded_qty, min: 0, max: i.loaded_qty, inputmode: "numeric", aria: { label: "Given: #{i.product.brand} #{i.product.name}" }, data: { stepper_target: "input", action: "input->handover#check" } %>
+          <button type="button" aria-label="One more" data-action="stepper#inc">+</button></div>
+        <div class="short-why" data-short hidden>
+          <div class="field"><label class="lbl" for="why<%= i.id %>">Why short?</label>
+            <%= text_field_tag "reasons[#{i.id}]", nil, id: "why#{i.id}", placeholder: "Missing, broken, customer refused…", list: "short-reasons" %></div>
+          <div class="field"><label class="lbl" for="dmg<%= i.id %>">Of these, damaged</label>
+            <%= number_field_tag "damaged[#{i.id}]", 0, min: 0, inputmode: "numeric", id: "dmg#{i.id}" %></div>
+        </div>
+      </div>
+      <% end %>
+    </div>
+    <datalist id="short-reasons"><option value="Missing"><option value="Broken in transit"><option value="Customer refused"><option value="Wrong item"></datalist>
+    <p class="muted panel-pad" style="font-size:var(--f-xs);margin:0;border-top:1px solid var(--line)" data-handover-target="shortNote" hidden>Anything not given comes back to the shop and the customer gets a credit note automatically. Good pieces go back on the shelf; damaged ones are written off.</p>
+  </section>
+
+  <section class="panel panel-pad mt" aria-labelledby="proof-h">
+    <h2 id="proof-h" style="margin-bottom:var(--s3)">Customer's delivery code</h2>
+    <div class="field"><label class="lbl sr-only" for="otp">4-digit code from the customer's WhatsApp bill</label>
+      <%= f.text_field :otp, id: "otp", class: "otp", inputmode: "numeric", pattern: "[0-9]*", maxlength: 4, autocomplete: "one-time-code", placeholder: "····", data: { handover_target: "otp", action: "input->handover#proof" } %>
+      <span class="hint">Ask for the 4-digit code in their WhatsApp bill, after they check the goods.</span></div>
+    <details class="more" style="margin-top:var(--s3)" data-handover-target="photoBox">
+      <summary>No code? Take a photo instead</summary>
+      <div class="field"><label class="lbl" for="photo">Photo of the goods at the shop</label>
+        <%= f.file_field :photo, id: "photo", accept: "image/*", capture: "environment", data: { handover_target: "photo", action: "change->handover#proof" } %></div>
+    </details>
+  </section>
+
+  <section class="panel panel-pad mt" aria-labelledby="cash-h">
+    <h2 id="cash-h" style="margin-bottom:var(--s3)">Payment collected <span class="hint" style="font-weight:400">if any</span></h2>
+    <div class="money-in big"><%= f.text_field :cash, inputmode: "decimal", placeholder: "0", aria: { label: "Amount collected in rupees" }, autocomplete: "off" %></div>
+    <div class="seg mt" role="radiogroup" aria-label="Paid by">
+      <% [["Cash", "cash"], ["UPI", "upi"], ["Cheque", "cheque"]].each_with_index do |(l, v), i| %>
+        <label><%= radio_button_tag :cash_mode, v, i.zero? %><span><%= l %></span></label><% end %>
+    </div>
+  </section>
+
+  <div class="actionbar">
+    <button type="submit" class="btn btn-lg btn-block" data-handover-target="submit"><%= icon(:check, size: 22) %><span data-handover-target="label">Delivered</span></button>
+  </div>
+<% end %>
+
+<% else %>
+<section class="panel">
+  <div class="panel-pad split" style="padding-bottom:var(--s3)"><h2>Items</h2><%= status_pill(@delivery) %></div>
+  <% @items.each do |i| %>
+  <div class="item-row <%= 'short' if i.delivered_qty && i.delivered_qty < i.qty %>"><div><div class="i-name"><%= i.product.brand %> <%= i.product.name %></div>
+    <div class="i-sub">Bill <%= i.qty %><%= " · short: #{i.short_reason}" if i.short_reason.present? %></div></div>
+    <strong class="tnum">Given <%= i.delivered_qty || "–" %></strong></div>
+  <% end %>
+</section>
+<% if @delivery.delivered_at %><p class="muted mt" style="font-size:var(--f-sm)">Delivered <%= @delivery.delivered_at.strftime("%d %b %H:%M") %> · proof: <%= @delivery.proof_kind %></p><% end %>
+<% if @delivery.photo_data && current_user.office? %><p><%= image_tag photo_delivery_path(@delivery), alt: "Delivery photo", style: "max-width:320px;border-radius:12px" %></p><% end %>
+<% @delivery.credit_notes.each do |cn| %><p>Credit note <%= cn.number %>: <strong><%= rs cn.total_paise %></strong></p><% end %>
+<% end %>
+
+<% if @delivery.open? %>
+<details class="more">
+  <summary>Couldn't deliver?</summary>
+  <%= form_with url: fail_delivery_path(@delivery), class: "form" do |f| %>
+    <fieldset class="field" style="border:0;padding:0;margin:0"><legend class="lbl" style="margin-bottom:var(--s2)">Reason</legend>
+      <div class="chips">
+      <% ["Shop closed", "Owner not available", "Customer refused", "Couldn't reach in time", "Other"].each_with_index do |r, i| %>
+        <label class="chip" style="position:relative"><%= radio_button_tag :reason, r, i.zero?, style: "width:18px;height:18px" %><%= r %></label>
+      <% end %></div></fieldset>
+    <%= f.submit "Not delivered, bringing goods back", class: "btn btn-danger btn-block" %>
+  <% end %>
+</details>
+<% end %>

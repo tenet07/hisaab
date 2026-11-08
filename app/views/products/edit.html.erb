@@ -1,0 +1,4 @@
+<% content_for :title, "Edit #{@product.label}" %>
+<%= back_link "#{@product.brand} #{@product.name}", @product %>
+<header class="ph"><h1>Edit <%= @product.brand %> <%= @product.name %></h1></header>
+<%= render "form" %>

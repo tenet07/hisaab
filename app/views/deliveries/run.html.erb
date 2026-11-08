@@ -1,0 +1,39 @@
+<% content_for :title, "My run" %>
+<% total = @open.size + @done.size; pct = total.zero? ? 0 : (@done.size * 100.0 / total).round %>
+<header class="ph" style="margin-bottom:var(--s4)"><div><h1>My run</h1><p class="sub"><%= @date.strftime("%A, %d %B") %></p></div></header>
+
+<section class="stats s3" aria-label="Run progress">
+  <div class="stat lead"><div class="k">Stops left</div><div class="v"><span class="amt xl"><%= @open.size %></span></div>
+    <div class="progress" role="progressbar" aria-valuenow="<%= pct %>" aria-valuemin="0" aria-valuemax="100" aria-label="Stops done"><i style="width:<%= pct %>%"></i></div>
+    <div class="d"><%= @done.size %> of <%= total %> done</div></div>
+  <div class="stat"><div class="k">Delivered</div><div class="v"><span class="amt"><%= @done.count(&:done?) %></span></div></div>
+  <div class="stat"><div class="k">Cash to hand in</div><div class="v"><%= amt @cash %></div></div>
+</section>
+
+<% if @open.empty? %>
+  <div class="panel empty mt"><%= icon(:check, size: 36) %><strong>All stops done</strong><p>Hand in the cash and bring back any goods that were not delivered.</p></div>
+<% end %>
+<% @open.group_by { |d| d.invoice.customer.market }.each do |market, ds| %>
+<section class="section" style="margin-top:var(--s6)">
+  <div class="section-h"><h2><%= market.name %></h2><span class="faint" style="font-size:var(--f-sm)"><%= pluralize(ds.size, "stop") %></span></div>
+  <ul class="list">
+    <% ds.each do |d| c = d.invoice.customer %>
+    <li><%= link_to d, class: "stop" do %>
+      <span class="row-main"><span class="row-title" style="font-size:var(--f-md)"><%= c.name %></span><br>
+        <span class="row-sub"><%= pluralize(d.items.size, "item") %> · <%= d.items.sum { _1.qty } %> pieces<%= " · from #{d.run_date.strftime('%d %b')}" if d.run_date < @date %></span></span>
+      <span class="row-end"><%= status_pill(d) %><br><span class="row-sub"><%= d.status == "pending" ? "Load check" : "Hand over" %></span></span>
+      <%= icon(:chevron, size: 20, cls: "chev") %>
+    <% end %></li>
+    <% end %>
+  </ul>
+</section>
+<% end %>
+
+<% if @done.any? %>
+<section class="section">
+  <div class="section-h"><h2>Done today</h2></div>
+  <ul class="list">
+    <% @done.each do |d| %><li class="row-static"><span class="row-main"><span class="row-title"><%= d.invoice.customer.name %></span></span><%= status_pill(d) %></li><% end %>
+  </ul>
+</section>
+<% end %>

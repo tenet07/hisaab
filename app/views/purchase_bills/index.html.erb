@@ -1,0 +1,16 @@
+<% content_for :title, "Purchases" %>
+<%= back_link "Suppliers", suppliers_path %>
+<header class="ph">
+  <div><h1>Purchases</h1><p class="sub">Latest <%= pluralize(@bills.size, "bill") %> · <%= rs0 @bills.sum(&:total_paise) %></p></div>
+  <div class="ph-actions"><%= link_to new_purchase_bill_path, class: "btn" do %><%= icon(:plus, size: 20) %>Purchase bill<% end %></div>
+</header>
+<% if @bills.any? %>
+<ul class="list">
+  <% @bills.each do |b| %>
+  <li><%= link_to purchase_bill_path(b), class: "row-link" do %>
+    <span class="row-main"><span class="row-title"><%= b.supplier.name %></span><br><span class="row-sub"><%= b.number %> · <%= b.date.strftime("%d %b %Y") %></span></span>
+    <span class="row-end"><%= amt b.total_paise %></span><%= icon(:chevron, size: 18, cls: "chev") %>
+  <% end %></li>
+  <% end %>
+</ul>
+<% else %><div class="panel empty"><%= icon(:box, size: 32) %><strong>No purchases yet</strong><p>Enter each supplier bill when goods arrive.</p><%= link_to "Enter purchase bill", new_purchase_bill_path, class: "btn" %></div><% end %>

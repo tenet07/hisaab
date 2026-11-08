@@ -1,0 +1,66 @@
+<% s = @supplier; owe = s.payable_paise; due_now = @unpaid.select { _1[:due_on] <= Date.current }.sum { _1[:due] } %>
+<% content_for :title, s.name %>
+<%= back_link "Suppliers", suppliers_path %>
+<header class="ph">
+  <div><h1><%= s.name %></h1>
+    <p class="sub"><%= s.brands.presence || "No brands set" %> · <%= s.credit_days %> days credit<%= " · GSTIN #{s.gstin}" if s.gstin %><%= " · Out of state (IGST)" unless s.intra_state? %></p></div>
+  <div class="ph-actions"><%= link_to "Edit", edit_supplier_path(s), class: "btn btn-ghost" %></div>
+</header>
+<div class="grid grid-side">
+  <section class="panel hero">
+    <div class="k">You owe</div>
+    <%= amt owe, tone: ("due" if owe.positive?), size: "xl" %>
+    <p class="mt mb0"><% if due_now.positive? %><span class="pill due"><%= rs0 due_now %> due by today</span><% else %><span class="pill ok">Nothing overdue</span><% end %></p>
+  </section>
+  <section class="stack-sm" aria-label="Actions">
+    <%= link_to new_purchase_bill_path(supplier_id: s.id), class: "btn btn-block" do %><%= icon(:plus, size: 20) %>Enter purchase bill<% end %>
+    <% if %w[owner accounts].include?(current_user.role) %><%= link_to new_supplier_supplier_payment_path(s), class: "btn btn-block btn-secondary" do %><%= icon(:rupee, size: 20) %>Pay supplier<% end %><% end %>
+    <% if s.phone.present? %><%= link_to "tel:+91#{s.phone}", class: "btn btn-block btn-ghost" do %><%= icon(:phone, size: 20) %>Call<% end %><% end %>
+  </section>
+</div>
+
+<section class="section">
+  <div class="section-h"><h2>Unpaid</h2><span class="faint" style="font-size:var(--f-sm)">Payments and brand credits clear the oldest first</span></div>
+  <% if @unpaid.any? %>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Bill</th><th class="hide-sm">Date</th><th class="hide-sm">Due on</th><th class="num">Still owed</th></tr></thead>
+    <tbody><% @unpaid.each do |u| %><% late = u[:due_on] < Date.current %><tr>
+      <td><strong><%= u[:bill] ? link_to(u[:ref], purchase_bill_path(u[:bill])) : u[:ref] %></strong>
+        <span class="only-sm"><br><span class="faint" style="font-size:var(--f-xs)">due <%= u[:due_on].strftime("%d %b") %></span><%= tag.span(" overdue", class: "pill due") if late %></span></td>
+      <td class="hide-sm nowrap"><%= u[:date].strftime("%d %b %y") %></td>
+      <td class="hide-sm nowrap"><%= u[:due_on].strftime("%d %b") %><% if late %> <span class="pill due">overdue</span><% end %></td>
+      <td class="num nowrap"><strong><span class="hide-sm"><%= rs u[:due] %></span><span class="only-sm"><%= rs0 u[:due] %></span></strong></td></tr><% end %></tbody>
+  </table></div>
+  <% else %><div class="panel all-clear"><%= icon(:check) %>Nothing owed to this supplier.</div><% end %>
+</section>
+
+<% if @claims.any? %>
+<section class="section">
+  <div class="section-h"><h2>Warranty claims</h2></div>
+  <ul class="list">
+    <% @claims.each do |c| %>
+    <li><%= link_to claim_path(c), class: "row-link" do %>
+      <span class="row-main"><span class="row-title"><%= c.number %></span><br><span class="row-sub"><%= c.credit_qty %> pieces for credit · <%= c.status.humanize %></span></span>
+      <span class="row-end"><%= amt c.credited_paise, tone: ("good" if c.credited_paise.positive?) %><br><span class="row-sub">received</span></span>
+      <%= icon(:chevron, size: 18, cls: "chev") %>
+    <% end %></li>
+    <% end %>
+  </ul>
+</section>
+<% end %>
+
+<section class="section">
+  <div class="section-h"><h2>Ledger</h2></div>
+  <% if @entries.any? %>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Date</th><th>Entry</th><th class="num hide-sm">Bill</th><th class="num hide-sm">Paid / credit</th><th class="num only-sm">Amount</th><th class="num">You owe</th></tr></thead>
+    <tbody><% run = 0 %><% @entries.each do |e| run += e.credit_paise - e.debit_paise %>
+    <tr><td class="nowrap"><%= e.date.strftime("%d %b") %><span class="hide-sm"> <%= e.date.strftime("%y") %></span></td>
+      <td><%= e.kind.start_with?("payment") ? "Payment" : e.kind.humanize %><br><span class="faint" style="font-size:var(--f-xs)"><%= e.ref %><%= " · #{e.note}" if e.note.present? %></span></td>
+      <td class="num hide-sm"><%= rs e.credit_paise if e.credit_paise.positive? %></td>
+      <td class="num good hide-sm"><%= rs e.debit_paise if e.debit_paise.positive? %></td>
+      <td class="num only-sm <%= 'good' if e.debit_paise.positive? %>"><%= e.debit_paise.positive? ? "−#{rs0 e.debit_paise}" : "+#{rs0 e.credit_paise}" %></td>
+      <td class="num"><strong><span class="hide-sm"><%= rs run %></span><span class="only-sm"><%= rs0 run %></span></strong></td></tr><% end %></tbody>
+  </table></div>
+  <% else %><div class="panel empty"><strong>No entries yet</strong><p>Purchase bills, payments and brand credits will show here.</p></div><% end %>
+</section>

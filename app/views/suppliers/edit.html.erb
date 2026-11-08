@@ -1,0 +1,4 @@
+<% content_for :title, "Edit #{@supplier.name}" %>
+<%= back_link @supplier.name, supplier_path(@supplier) %>
+<header class="ph"><div><h1>Edit supplier</h1><p class="sub"><%= @supplier.name %></p></div></header>
+<%= render "form" %>

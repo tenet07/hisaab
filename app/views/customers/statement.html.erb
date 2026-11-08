@@ -1,0 +1,9 @@
+<% content_for :title, "Statement · #{@customer.name}" %>
+<div class="bill-head"><div><strong><%= shop_name %></strong><br>Statement of account</div>
+<div style="text-align:right"><strong><%= @customer.name %></strong><br><%= @customer.market.name %><br>As of <%= Date.current.strftime("%d %b %Y") %></div></div>
+<table><thead><tr><th>Date</th><th>Entry</th><th>Ref</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th></tr></thead><tbody>
+<% run = 0 %><% @entries.each do |e| run += e.debit_paise - e.credit_paise %>
+<tr><td class="nowrap"><%= e.date.strftime("%d %b %y") %></td><td><%= e.kind.humanize %></td><td><%= e.ref %></td>
+<td class="num"><%= rs e.debit_paise if e.debit_paise.positive? %></td><td class="num"><%= rs e.credit_paise if e.credit_paise.positive? %></td><td class="num"><%= rs run %></td></tr>
+<% end %></tbody></table>
+<p style="text-align:right;font-size:1.15rem;margin-top:1rem"><strong>Balance due: <%= rs @customer.balance_paise %></strong></p>

@@ -1,0 +1,8 @@
+<% content_for :title, "Payment from #{@customer.name}" %>
+<%= back_link @customer.name, (current_user.field? ? visit_customer_path(@customer) : customer_path(@customer)) %>
+<header class="ph"><div><h1>Record payment</h1><p class="sub"><%= @customer.name %> · <%= @customer.market.name %></p></div></header>
+<div class="grid grid-side">
+  <section class="panel panel-pad"><%= render "payments/quick_form", customer: @customer, open_items: @customer.open_items, autofocus: true %></section>
+  <section class="panel hero"><div class="k">Balance due now</div><%= amt @customer.balance_paise, tone: ("due" if @customer.balance_paise.positive?), size: "lg" %>
+    <p class="muted mt mb0" style="font-size:var(--f-sm)">The customer gets a WhatsApp receipt after you save.</p></section>
+</div>

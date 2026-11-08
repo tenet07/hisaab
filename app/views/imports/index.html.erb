@@ -1,0 +1,27 @@
+<% content_for :title, "Import from Excel" %>
+<header class="ph"><div><h1>Import from Excel</h1><p class="sub">Bring in products, customers and suppliers for going live. Every row is checked before anything is saved.</p></div></header>
+<ol class="howto">
+  <li><strong>Download a template</strong> and fill it in Excel. Keep the first row as it is.</li>
+  <li><strong>Upload</strong> it as .xlsx or .csv. Fix any rows marked red and upload again.</li>
+  <li><strong>Save.</strong> Running it again updates items instead of duplicating them.</li>
+</ol>
+<div class="grid grid-3 section">
+<% [["suppliers", "Suppliers", "Distributor, brands, credit days, what you owe", :store],
+    ["products", "Products", "SKU, prices, GST, warranty, opening stock", :box],
+    ["customers", "Customers", "Shop, phone, market, credit limit, what they owe", :users]].each do |kind, label, desc, ic| %>
+  <section class="panel panel-pad">
+    <div class="split"><h2><%= label %></h2><%= icon(ic, size: 22) %></div>
+    <p class="muted" style="font-size:var(--f-sm);margin:var(--s2) 0 var(--s4)"><%= desc %></p>
+    <%= link_to template_imports_path(kind: kind), class: "btn btn-secondary btn-block" do %><%= icon(:export, size: 18) %>Template<% end %>
+  </section>
+<% end %>
+</div>
+<%= form_with url: imports_path, class: "form panel panel-pad section", multipart: true, data: { turbo: false } do |f| %>
+  <h2>Upload</h2>
+  <div class="field"><span class="lbl">What are you importing?</span>
+    <div class="seg"><% [["Suppliers", "suppliers"], ["Products", "products"], ["Customers", "customers"]].each_with_index do |(l, v), i| %>
+      <label><%= radio_button_tag :kind, v, i == 1 %><span><%= l %></span></label><% end %></div></div>
+  <div class="field"><label class="lbl" for="file">Excel or CSV file</label><%= f.file_field :file, accept: ".xlsx,.csv", required: true, id: "file" %></div>
+  <%= f.submit "Check file", class: "btn btn-lg" %>
+<% end %>
+<div class="note section"><%= icon(:alert, size: 18) %><p>Import suppliers and products first, then customers. Load opening stock on the day you count the shelves, and confirm each customer's opening balance with them.</p></div>

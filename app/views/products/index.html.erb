@@ -1,0 +1,26 @@
+<% content_for :title, "Stock" %>
+<% snaps = @products.map { |p| [p, p.snapshot] } %>
+<% low = snaps.count { |p, _| p.low_stock? } %>
+<header class="ph">
+  <div><h1>Stock</h1><p class="sub"><%= pluralize(@products.size, "item") %><%= " · #{low} low" if low.positive? %></p></div>
+  <% if current_user.office? %><div class="ph-actions"><%= link_to new_product_path, class: "btn" do %><%= icon(:plus, size: 20) %>Add product<% end %></div><% end %>
+</header>
+<%= form_with url: products_path, method: :get do |f| %>
+  <div class="search"><%= icon(:search, size: 20) %><%= f.search_field :q, value: params[:q], placeholder: "Search item, brand or code", aria: { label: "Search item, brand or code" }, autocomplete: "off" %></div>
+<% end %>
+<% if @products.any? %>
+<div class="tbl-wrap mt"><table>
+  <thead><tr><th>Item</th><th class="num">On shelf</th><th class="num hide-sm">Awaiting claim</th><th class="num hide-md">With brand</th><th class="num hide-sm">Wholesale</th><th class="num hide-md">Retail</th></tr></thead>
+  <tbody>
+  <% snaps.each do |p, s| %>
+  <tr><td><%= link_to p, style: "text-decoration:none;color:inherit;display:block" do %><strong><%= p.brand %> <%= p.name %></strong><br><span class="faint" style="font-size:var(--f-xs)"><%= p.sku %></span><% end %></td>
+    <td class="num"><strong class="<%= 'due' if p.low_stock? %>" style="font-size:var(--f-md)"><%= s[:sellable] %></strong><% if p.low_stock? %><br><span class="pill due">Low</span><% end %></td>
+    <td class="num hide-sm"><%= s[:awaiting_claim].zero? ? tag.span("–", class: "faint") : s[:awaiting_claim] %></td>
+    <td class="num hide-md"><%= s[:with_brand].zero? ? tag.span("–", class: "faint") : s[:with_brand] %></td>
+    <td class="num hide-sm"><%= rs p.wholesale_price_paise %></td><td class="num hide-md"><%= rs p.retail_price_paise %></td></tr>
+  <% end %>
+  </tbody>
+</table></div>
+<% else %>
+<div class="panel empty mt"><%= icon(:search, size: 32) %><strong>No items found</strong><p>Try the brand, the wattage, or the product code.</p><%= link_to "Clear search", products_path, class: "btn btn-secondary" %></div>
+<% end %>

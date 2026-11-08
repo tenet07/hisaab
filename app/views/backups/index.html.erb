@@ -1,0 +1,23 @@
+<% content_for :title, "Backups" %>
+<%= back_link "Shop settings", edit_settings_path %>
+<header class="ph"><div><h1>Backups</h1>
+  <p class="sub">The server saves everything (bills, payments, stock, delivery photos) every night and keeps 30 days.
+  Download one each week to your laptop or Google Drive so a copy lives off the server.</p></div></header>
+<% if @stale %>
+<div class="flash flash-warn" role="status"><%= icon(:alert, size: 20) %><span>
+  <%= @files.empty? ? "No backup yet. The first one runs tonight." : "Last backup is older than a day. Ask whoever set up the server to check it." %></span></div>
+<% end %>
+<% if @files.any? %>
+<section class="panel"><div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Taken</th><th class="num">Size</th><th></th></tr></thead>
+    <tbody>
+    <% @files.first(30).each do |f| %>
+      <tr><td><%= f.mtime.in_time_zone.strftime("%a %d %b %Y, %H:%M") %></td>
+        <td class="num tnum"><%= number_to_human_size(f.size) %></td>
+        <td class="num"><%= link_to backup_path(f.basename.to_s), class: "btn btn-secondary btn-sm", data: { turbo: false } do %>Download<% end %></td></tr>
+    <% end %>
+    </tbody>
+  </table>
+</div></section>
+<% end %>

@@ -1,0 +1,25 @@
+<% content_for :title, "Suppliers" %>
+<header class="ph">
+  <div><h1>Suppliers</h1><p class="sub"><%= pluralize(@suppliers.size, "supplier") %> · you owe <%= rs0 @payables.values.sum %></p></div>
+  <div class="ph-actions">
+    <%= link_to new_purchase_bill_path, class: "btn" do %><%= icon(:plus, size: 20) %>Purchase bill<% end %>
+    <%= link_to "All purchases", purchase_bills_path, class: "btn btn-secondary" %>
+    <%= link_to "Add supplier", new_supplier_path, class: "btn btn-ghost" %>
+  </div>
+</header>
+<% if @suppliers.any? %>
+<ul class="list">
+  <% @suppliers.each do |s| %><% owe = @payables[s.id].to_i %>
+  <li><%= link_to s, class: "row-link" do %>
+    <span class="avatar" aria-hidden="true" style="background:var(--sunk);color:var(--ink-2)"><%= initials(s.name) %></span>
+    <span class="row-main"><span class="row-title"><%= s.name %></span><br><span class="row-sub"><%= s.brands.presence || "No brands set" %> · <%= s.credit_days %> days credit</span></span>
+    <span class="row-end"><%= amt owe, tone: ("due" if owe.positive?) %><% if owe <= 0 %><br><span class="row-sub">Nothing owed</span><% end %></span>
+    <%= icon(:chevron, size: 18, cls: "chev") %>
+  <% end %></li>
+  <% end %>
+</ul>
+<% else %>
+<div class="panel empty"><%= icon(:store, size: 32) %><strong>No suppliers yet</strong>
+  <p>Add each distributor with the brands you buy from them, so claims and purchases go to the right place.</p>
+  <%= link_to "Add supplier", new_supplier_path, class: "btn" %> <%= link_to "Import from Excel", imports_path, class: "btn btn-secondary" %></div>
+<% end %>
