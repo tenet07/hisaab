@@ -3,6 +3,9 @@
 Billing, stock, collections, replacements and Tally export for a
 lighting and electrical shop (retail + wholesale, six markets).
 
+> The earlier version of this app (20 Oct 2026: email logins, WhatsApp Cloud API, AI order
+> reading, offline phone app, GSTR-1) is kept on the branch `hisaab-oct-2026`.
+
 ## Contents
 
 1. [Set up a development machine](#set-up-a-development-machine)
@@ -48,7 +51,7 @@ rbenv install 3.3.6
 ### 2. Get the code and install gems
 
 ```bash
-git clone git@github.com:<owner>/<repo>.git shopos
+git clone git@github.com:tenet07/hisaab.git shopos
 cd shopos
 ruby -v                  # must say 3.3.6 (rbenv picks it from .ruby-version)
 gem install bundler
@@ -139,13 +142,13 @@ subdomain, e.g. `dev.yourshop.in`, so changes can be tried on phones before the 
 
    ```bash
    sudo apt-get update && sudo apt-get install -y git
-   git clone https://github.com/<owner>/<repo>.git shopos && cd shopos
+   git clone https://github.com/tenet07/hisaab.git shopos && cd shopos
    sudo bash deploy/server-setup.sh dev.yourshop.in
    ```
 
    For a private repo, create a read-only **deploy key** (GitHub → repo → Settings →
    Deploy keys) on the server with `ssh-keygen -t ed25519`, add the `.pub` there, and
-   clone with `git@github.com:<owner>/<repo>.git`.
+   clone with `git@github.com:tenet07/hisaab.git`.
 3. Either open `https://dev.yourshop.in` and do first-run setup with the printed setup
    code, or load the demo shop instead:
 
