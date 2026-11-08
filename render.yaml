@@ -18,3 +18,5 @@ services:
         generateValue: true
       - key: RAILS_LOG_LEVEL
         value: warn
+      - key: WEB_CONCURRENCY
+        value: "0"

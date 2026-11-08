@@ -31,6 +31,10 @@ threads threads_count, threads_count
 # Specifies the `port` that Puma will listen on to receive requests; default is 3000.
 port ENV.fetch("PORT", 3000)
 
+# One process is right for a small server or the free demo: extra worker processes only use
+# memory. (Render sets WEB_CONCURRENCY=1, which would otherwise start a separate worker.)
+workers Integer(ENV.fetch("WEB_CONCURRENCY", 0)) > 1 ? Integer(ENV["WEB_CONCURRENCY"]) : 0
+
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart
 
