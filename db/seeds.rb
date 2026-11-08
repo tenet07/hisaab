@@ -67,6 +67,16 @@ if Invoice.none?
   Books.create_invoice(customer: shops[4], user: accounts, items: [{ product: products[5], qty: 4 }])
   Books.record_payment(customer: shops[0], amount_paise: P["10000"], mode: "upi", ref: "UPI-4471", user: salesman)
   Books.replace(customer: shops[1], product: products[0], qty: 3, user: salesman, sold_on: Date.current - 40)
+
+  # Today's run for Delivery 1, so the delivery phone has stops to show.
+  [[shops[0], [[products[1], 50], [products[4], 6]]],
+   [shops[2], [[products[3], 120], [products[6], 20]]],
+   [shops[5], [[products[2], 12], [products[7], 4]]]].each_with_index do |(cust, lines), i|
+    inv = Books.create_invoice(customer: cust, user: accounts, channel: "salesman", deliver: true,
+                               items: lines.map { |p, q| { product: p, qty: q } })
+    Books.assign_delivery(inv.delivery, to: d1, run_date: Date.current, user: owner)
+    Books.load_delivery(inv.delivery, loaded: {}, user: d1) if i.zero?
+  end
 end
 if Supplier.none?
   phil = Supplier.create!(name: "Signify Distributor Gurgaon", brands: "Philips", gstin: "06AAACS1234D1Z1", credit_days: 30)

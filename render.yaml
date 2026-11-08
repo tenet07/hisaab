@@ -1,0 +1,20 @@
+# Free demo on Render (render.com -> New -> Blueprint -> this repo). Costs nothing.
+# The free plan sleeps after 15 minutes without visitors (first open then takes about a
+# minute) and its disk is not kept: every wake-up starts a fresh demo shop. Fine for showing
+# customers; never for the real shop (that's DEPLOY.md).
+services:
+  - type: web
+    name: shop-demo
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    healthCheckPath: /up
+    autoDeploy: true
+    envVars:
+      - key: DEMO_DATA
+        value: "1"
+      - key: SECRET_KEY_BASE
+        generateValue: true
+      - key: RAILS_LOG_LEVEL
+        value: warn

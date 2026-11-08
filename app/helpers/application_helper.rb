@@ -1,4 +1,7 @@
 module ApplicationHelper
+  # A demo installation (DEMO_DATA=1): sample shop, PIN 1234 for everyone, data not kept.
+  def demo? = ENV["DEMO_DATA"] == "1"
+
   def rs(paise) = Shop::Money.format(paise.to_i)
   def rs_input(paise) = paise.to_i.zero? ? "" : format("%.2f", paise.to_i / 100.0)
   def gst_pct(bp) = "#{bp / 100}%"

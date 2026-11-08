@@ -549,3 +549,9 @@ fieldset.field{border:0;padding:0;margin:0;min-width:0} fieldset.field>legend{pa
 .tax-invoice{overflow-x:auto}
 @media print{.tax-invoice{overflow:visible} .ti-lines th,.ti-lines td{padding:4px 6px}}
 .install{padding:0 var(--s3) var(--s3)}
+/* Demo installation */
+.demo-bar{margin:0 0 var(--s4);padding:var(--s2) var(--s3);border-radius:var(--r-sm);background:#fff4cc;color:#4d3b00;font-size:var(--f-sm);border:1px solid #f0d36b}
+@media (prefers-color-scheme:dark){.demo-bar{background:#3a2f05;color:#ffe9a3;border-color:#6b5a14}}
+.demo-help{margin-top:var(--s4);padding:var(--s3);border-radius:var(--r-sm);border:1px dashed var(--line);font-size:var(--f-sm)}
+.demo-help ul{margin:var(--s2) 0;padding-left:1.2em}
+.demo-help p{margin:0}

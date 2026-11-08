@@ -79,7 +79,9 @@ Rails.application.configure do
 
   # Enable DNS rebinding protection and other `Host` header attacks.
   # Only answer for the shop's own domain (APP_HOST in .env).
-  config.hosts = ENV.fetch("APP_HOST", "").split(",").map(&:strip).reject(&:empty?).presence
+  # Render (free demo) sets RENDER_EXTERNAL_HOSTNAME itself.
+  config.hosts = (ENV.fetch("APP_HOST", "").split(",") + [ENV["RENDER_EXTERNAL_HOSTNAME"].to_s])
+                   .map(&:strip).reject(&:empty?).presence
   config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
   # config.hosts = [
   #   "example.com",     # Allow requests from example.com

@@ -1,0 +1,22 @@
+#!/bin/bash
+# Show the demo shop to someone else, free, from this laptop:
+#   bin/demo-share
+# Starts the app with the demo data and prints a https://....trycloudflare.com link that works
+# on any phone. The link lives only while this runs (Ctrl+C stops both); each run gives a new one.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if ! command -v cloudflared >/dev/null; then
+  echo "Install cloudflared first (free, no account needed):"
+  echo "  macOS:   brew install cloudflared"
+  echo "  Ubuntu:  see https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/"
+  echo "  Windows: winget install --id Cloudflare.cloudflared"
+  exit 1
+fi
+[ -f storage/development.sqlite3 ] || bin/rails db:prepare
+DEMO_DATA=1 bin/rails server -p 3000 > log/demo-share.log 2>&1 &
+APP=$!
+trap 'kill $APP 2>/dev/null' EXIT
+sleep 4
+echo "App running. Getting a public link (look for https://....trycloudflare.com below)."
+echo "Demo logins: tap a name, PIN 1234. Ctrl+C to stop."
+cloudflared tunnel --url http://localhost:3000 --no-autoupdate 2>&1 | grep --line-buffered -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | grep --line-buffered -v '//api\.'

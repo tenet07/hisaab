@@ -31,4 +31,5 @@ VOLUME /rails/storage
 USER 1000:1000
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 EXPOSE 3000
-CMD ["./bin/rails", "server", "-b", "0.0.0.0", "-p", "3000"]
+# Port comes from $PORT (Render sets it), default 3000.
+CMD ["./bin/rails", "server", "-b", "0.0.0.0"]

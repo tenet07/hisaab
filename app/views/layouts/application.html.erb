@@ -58,6 +58,7 @@
   <% end %>
 
   <main id="main" class="<%= content_for?(:main_class) ? yield(:main_class) : '' %>">
+    <% if demo? %><div class="demo-bar" role="note"><strong>Demo shop.</strong> Sample data, try anything. It resets on its own, so don't enter real customers.</div><% end %>
     <% if notice %><div class="flash flash-ok" role="status"><%= icon(:check, size: 20) %><span><%= notice %></span></div><% end %>
     <% if alert %><div class="flash flash-bad" role="alert"><%= icon(:alert, size: 20) %><span><%= alert %></span></div><% end %>
     <% if flash[:whatsapp] %>

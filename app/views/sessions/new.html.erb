@@ -16,5 +16,15 @@
     <div class="field"><label class="lbl" for="pin">PIN</label>
       <%= f.password_field :pin, id: "pin", class: "pin-input", inputmode: "numeric", pattern: "[0-9]*", autocomplete: "current-password", required: true, maxlength: 8 %></div>
     <%= f.submit "Log in", class: "btn btn-lg btn-block" %>
+    <% if demo? %>
+    <div class="demo-help">
+      <p><strong>Demo:</strong> every PIN is <strong class="tnum">1234</strong>. Try:</p>
+      <ul>
+        <li><strong>Owner</strong> or <strong>Accounts</strong>: the shop desktop (bills, dues, stock, Tally).</li>
+        <li><strong>Delivery 1</strong>: the delivery person's phone (today's run, handover code).</li>
+      </ul>
+      <p class="muted">To hand over a delivery, the customer's code is on the bill page when logged in as Owner.</p>
+    </div>
+    <% end %>
   <% end %>
 </div>

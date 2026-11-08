@@ -1,6 +1,8 @@
 require "active_support/core_ext/integer/time"
 
 Rails.application.configure do
+  # bin/demo-share opens the laptop's app to the internet through a free Cloudflare link.
+  config.hosts << ".trycloudflare.com"
   # Settings specified here will take precedence over those in config/application.rb.
 
   # Make code changes take effect immediately without server restart.

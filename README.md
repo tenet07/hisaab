@@ -11,8 +11,9 @@ lighting and electrical shop (retail + wholesale, six markets).
 1. [Set up a development machine](#set-up-a-development-machine)
 2. [Run the tests](#run-the-tests)
 3. [Try it with Postgres locally (optional)](#try-it-with-postgres-locally-optional)
-4. [Run a dev/staging server](#run-a-devstaging-server)
-5. [Production](#production) and [DEPLOY.md](DEPLOY.md)
+4. [Show a free demo to customers](#show-a-free-demo-to-customers)
+5. [Run a dev/staging server](#run-a-devstaging-server)
+6. [Production](#production) and [DEPLOY.md](DEPLOY.md)
 
 ## Set up a development machine
 
@@ -131,6 +132,43 @@ RAILS_ENV=test bin/rails db:create db:schema:load
 bin/rails test
 unset DATABASE_URL
 ```
+
+## Show a free demo to customers
+
+Two ways, both ₹0. The demo is a sample shop (Solanki Electricals, 7 customers, 8 products,
+3 deliveries on today's run). Every PIN is `1234`, and a yellow bar says it's a demo.
+
+### A. A link they can open any time: Render (free)
+
+1. Sign in at [render.com](https://render.com) with GitHub and pick the free plan.
+2. **New → Blueprint** → pick `tenet07/hisaab` → **Apply**. Render reads `render.yaml` and
+   builds the app (about 10 minutes the first time).
+3. Share the `https://shop-demo-….onrender.com` link. On phones, **Install app** puts it on the
+   home screen like the real thing.
+
+Limits of the free plan: it sleeps after 15 minutes with no visitors, and the next visit takes
+about a minute to wake it. Each wake-up starts a **fresh demo shop**: whatever a visitor typed is
+gone, which is what a demo wants. Every push to `main` updates the demo automatically.
+
+### B. Live, from your laptop, during a meeting or call
+
+```bash
+brew install cloudflared            # Windows: winget install Cloudflare.cloudflared
+bin/demo-share
+```
+
+It starts the app with the demo data and prints a `https://….trycloudflare.com` link that
+works on any phone, no account needed. The link works while the command runs (Ctrl+C stops it)
+and changes every time. Changes made by visitors stay in your laptop's demo database;
+`bin/rails db:reset` starts it fresh.
+
+### What to ask during feedback
+
+- Owner on desktop: make a bill, record a payment, check **Today**, open a customer's dues.
+- Delivery 1 on a phone: **My run** → load check → hand over with the customer's code (shown on
+  the bill page when logged in as Owner) → mark a short item.
+- Ask: what's missing from the bill, which screen they'd open first every morning, what the
+  delivery person found confusing.
 
 ## Run a dev/staging server
 
